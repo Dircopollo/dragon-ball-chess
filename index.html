@@ -563,7 +563,7 @@ details.tier[open]>summary .chev{transform:rotate(180deg)}
 .cloud-pill{cursor:pointer;border:1px solid var(--line);background:var(--glass);color:var(--dim);font:inherit;font-size:.72rem;padding:5px 10px;border-radius:999px}
 .viewer #lockBtn,.viewer #saveBtn,.viewer #cloudBtn,.viewer .top-actions [data-act="goto-import"],.viewer .tab[data-tab="diplomas"],.viewer .tab[data-tab="ajustes"],
 .viewer #importPanel,.viewer #syncAllBtn,.viewer #legacyBanner2,.viewer .count-toggle,.viewer [data-act="t-refresh"],.viewer [data-act="t-delete"],.viewer [data-act="t-studio"],
-.viewer [data-act="open-diploma"],.viewer [data-act="goto-import"],.viewer [data-act="demo-load"],.viewer [data-act="demo-clear"],.viewer [data-act="export-json"],.viewer [data-act="adj-add"],.viewer [data-act="adj-del"]{display:none!important}
+.viewer [data-act="open-diploma"],.viewer [data-act="goto-import"],.viewer [data-act="demo-load"],.viewer [data-act="demo-clear"],.viewer [data-act="export-json"],.viewer [data-act="adj-add"],.viewer [data-act="adj-del"],.viewer .ex-zone{display:none!important}
 .viewer .tabs{grid-template-columns:repeat(3,1fr)}
 .viewer .brand-mark{cursor:default}
 
@@ -857,6 +857,16 @@ details.tier[open]>summary .chev{transform:rotate(180deg)}
         <div class="h-section">✎ Ajustes manuales de puntos</div>
         <div id="adjList" style="margin-top:12px"></div>
         <p class="hint">Añade o quita puntos a un jugador desde su ficha (toca su nombre en la clasificación).</p>
+      </div>
+
+      <div class="panel" id="exPanel">
+        <div class="h-section">🚫 Jugadores excluidos</div>
+        <div id="exList" style="margin-top:12px"></div>
+        <div class="adj-form" style="grid-template-columns:1fr auto">
+          <input class="input" id="exName" type="text" maxlength="40" placeholder="Usuario de Lichess" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Usuario de Lichess a excluir">
+          <button class="btn danger" data-act="ex-add-input">Excluir</button>
+        </div>
+        <p class="hint">Un jugador excluido no cuenta en la liga (clasificación, rangos, temporadas), pero sus partidas siguen en los torneos y puedes devolverlo cuando quieras. También puedes excluir desde su ficha. Después pulsa ☁️ Publicar para que lo vea el grupo.</p>
       </div>
 
       <div class="panel">
@@ -1308,7 +1318,7 @@ const DEFAULT_SETTINGS = () => ({
   quality: 2400,
   format: 'png'
 });
-const freshState = () => ({ v: 2, settings: DEFAULT_SETTINGS(), tournaments: [], adjustments: [], lastUpdated: null, lastBackup: null, savedAt: null });
+const freshState = () => ({ v: 2, settings: DEFAULT_SETTINGS(), tournaments: [], adjustments: [], excluded: [], lastUpdated: null, lastBackup: null, savedAt: null });
 
 let S = freshState();
 let _rev = 0;
@@ -1359,6 +1369,16 @@ function sanAdj(a) {
   if (!a || !a.user || !Number.isFinite(+a.pts)) return null;
   return { id: String(a.id || uid()), user: String(a.user).slice(0, 40), pts: round2(+a.pts), reason: String(a.reason || '').slice(0, 80), ts: num(a.ts, Date.now()) };
 }
+/* jugadores excluidos de la liga: [{ name, ts, reason }] (sin repetidos) */
+function sanExcluded(a) {
+  const seen = new Set();
+  return (Array.isArray(a) ? a : []).map(x => {
+    const name = String(typeof x === 'string' ? x : (x && typeof x === 'object' ? (x.name || x.user || '') : '')).trim().replace(/^@/, '').slice(0, 40);
+    return name ? { name, ts: num(x && x.ts, Date.now()), reason: String((x && x.reason) || '').slice(0, 80) } : null;
+  }).filter(x => x && !seen.has(lc(x.name)) && seen.add(lc(x.name)));
+}
+const exSet = () => new Set((S.excluded || []).map(x => lc(x.name)));
+const isExcluded = name => exSet().has(lc(name));
 function sanitize(d) {
   const base = freshState();
   if (!d || typeof d !== 'object') return base;
@@ -1386,6 +1406,7 @@ function sanitize(d) {
     v: 2, settings: s,
     tournaments: (Array.isArray(d.tournaments) ? d.tournaments : []).map(sanTournament).filter(Boolean),
     adjustments: (Array.isArray(d.adjustments) ? d.adjustments : []).map(sanAdj).filter(Boolean),
+    excluded: sanExcluded(d.excluded),
     lastUpdated: numOrNull(d.lastUpdated), lastBackup: numOrNull(d.lastBackup), savedAt: numOrNull(d.savedAt)
   };
 }
@@ -1499,6 +1520,8 @@ function mergeState(cur, inc) {
   });
   const ids = new Set(out.adjustments.map(a => a.id));
   inc.adjustments.forEach(a => { if (!ids.has(a.id)) out.adjustments.push(a); });
+  out.excluded = out.excluded || [];
+  (inc.excluded || []).forEach(x => { if (!out.excluded.some(y => lc(y.name) === lc(x.name))) out.excluded.push(x); });
   out.lastUpdated = Date.now();
   return out;
 }
@@ -1807,7 +1830,7 @@ const Lock = {
 };
 
 /* acciones que modifican datos: con la liga bloqueada piden la contraseña */
-const EDIT_ACTIONS = new Set(['import', 'sync-all', 't-refresh', 't-delete', 'toggle-count', 'adj-add', 'adj-del', 'demo-load', 'demo-clear',
+const EDIT_ACTIONS = new Set(['import', 'sync-all', 't-refresh', 't-delete', 'toggle-count', 'adj-add', 'adj-del', 'ex-add', 'ex-add-input', 'ex-del', 'demo-load', 'demo-clear',
   'reset-all', 'import-json', 'paste-backup', 'paste-go', 'file-link', 'file-unlink', 'logo-pick', 'logo-clear']);
 const EDIT_FIELDS = '#setDiff,#setBase,#setGrowth,#setArena,#setSeasonStart,#setSeasonDays,#setBP,#setPbSwissTop,#setPbSwissFirst,#setPbSwissLast,#setPbArenaTop,#setPbArenaFirst,#setPbArenaLast,#setOrg,#setTagline,#setSig1Name,#setSig1Role,#setSig2Name,#setSig2Role,#fileJson,#fileLogo,#adjPts,#adjWhy,#adjUser';
 function guard(e) {
@@ -2248,6 +2271,7 @@ const cmpPlayers = (a, b) => b.pts - a.pts || b.wins - a.wins || podiumScore(b) 
 
 function compute(sel = selectedSeason()) {
   const T = chronological().filter(t => t.counts !== false);
+  const EX = exSet();
   const players = new Map();
   const getP = name => {
     const k = lc(name);
@@ -2261,12 +2285,14 @@ function compute(sel = selectedSeason()) {
   };
   T.forEach(t => {
     t.results.forEach(e => {
+      if (EX.has(lc(e.name))) return;
       const p = getP(e.name);
       const ev = { kind: 't', ts: tournamentTs(t), t, e, pts: entryPoints(t, e) };
       p.events.push(ev); p.entries.push(ev);
     });
   });
   S.adjustments.forEach(a => {
+    if (EX.has(lc(a.user))) return;
     const p = getP(a.user);
     p.events.push({ kind: 'adj', ts: a.ts, adj: a, pts: a.pts });
     p.adjPts += a.pts;
@@ -2393,7 +2419,7 @@ function compute(sel = selectedSeason()) {
     tournaments: S.tournaments.filter(t => seasonOf(tournamentTs(t)) === sel).length,
     counted: TS.length,
     totalTournaments: S.tournaments.length,
-    participations: TS.reduce((s, t) => s + t.results.length, 0),
+    participations: TS.reduce((s, t) => s + t.results.filter(e => !EX.has(lc(e.name))).length, 0),
     games: Math.round(list.reduce((s, p) => s + p.s.games, 0) / 2),
     topRank: all.length ? all[0].rank : null,
     topKi: list.filter(p => p.ki != null).sort((a, b) => b.ki - a.ki || cmpSeason(a, b))[0] || null,
@@ -3859,6 +3885,11 @@ function playerHtml(p) {
     <div class="m-actions" style="justify-content:flex-start">
       <button class="btn blue sm" data-act="pm-card">🖼️ Tarjeta para compartir</button>
       <button class="btn purple sm" data-act="pm-cert">🐉 Certificado de rango</button>
+    </div>
+    <div class="ex-zone">
+      <div class="h-sub">Moderación</div>
+      <button class="btn danger sm" data-act="ex-add" data-name="${esc(p.name)}">🚫 Excluir de la liga</button>
+      <p class="hint" style="margin:8px 0 0">Deja de salir en la clasificación, los rangos y las temporadas. Se puede devolver desde Ajustes.</p>
     </div>`;
 }
 
@@ -4037,6 +4068,38 @@ ACTIONS['adj-del'] = async el => {
   S.adjustments = S.adjustments.filter(x => x.id !== a.id);
   commit(); toast('Ajuste eliminado.', 'ok');
 };
+
+/* ── excluir / devolver jugadores ── */
+async function excludePlayer(raw) {
+  let name = String(raw || '').trim().replace(/^@/, '').slice(0, 40);
+  if (!name) { toast('Escribe el usuario de Lichess.', 'warn'); return false; }
+  const known = derived().map.get(lc(name)); if (known) name = known.name;   /* respeta las mayúsculas reales de Lichess */
+  if (isExcluded(name)) { toast(`${name} ya está excluido.`, 'warn'); return false; }
+  const ok = await Dlg.confirm({ title: 'Excluir de la liga', text: `¿Excluir a <b>${esc(name)}</b> de la liga? Dejará de aparecer en la clasificación, los rangos y las temporadas. Sus partidas en los torneos no se borran y puedes devolverlo cuando quieras desde Ajustes.`, ok: 'Excluir', danger: true });
+  if (!ok) return false;
+  S.excluded = S.excluded || [];
+  S.excluded.push({ name, ts: Date.now(), reason: '' });
+  S.lastUpdated = Date.now();
+  commit();
+  toast(`${name} excluido de la liga. Pulsa ☁️ Publicar para que lo vea el grupo.`, 'ok', 6000);
+  return true;
+}
+ACTIONS['ex-add'] = el => excludePlayer(el.dataset.name);
+ACTIONS['ex-add-input'] = async () => {
+  const el = $('#exName'); if (!el) return;
+  if (await excludePlayer(el.value)) { const n = $('#exName'); if (n) n.value = ''; }
+};
+ACTIONS['ex-del'] = el => {
+  const k = lc(el.dataset.name);
+  if (!(S.excluded || []).some(x => lc(x.name) === k)) return;
+  S.excluded = S.excluded.filter(x => lc(x.name) !== k);
+  S.lastUpdated = Date.now();
+  commit();
+  toast(`${el.dataset.name} vuelve a la liga. Pulsa ☁️ Publicar para que lo vea el grupo.`, 'ok', 6000);
+};
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'exName') { e.preventDefault(); e.target.closest('.adj-form').querySelector('[data-act="ex-add-input"]').click(); }
+});
 
 /* ── 73-ui-studio.js ── */
 /* ═══════════════════════════════════════════════════════════
@@ -4350,6 +4413,11 @@ function renderAjustes() {
     ? `<div class="ev-list">${adj.map(a => `<div class="ev adj"><div><div class="n">${esc(a.user)}${a.reason ? ' · ' + esc(a.reason) : ''}</div><div class="s">${esc(fmtDateTime(a.ts))}</div></div>
         <div class="p">${fmtSigned(a.pts)} pts<br><button class="btn danger xs" data-act="adj-del" data-id="${esc(a.id)}" style="margin-top:4px">Quitar</button></div></div>`).join('')}</div>`
     : '<p class="hint" style="margin:0">Sin ajustes manuales.</p>';
+  const ex = (S.excluded || []).slice().sort((a, b) => b.ts - a.ts);
+  $('#exList').innerHTML = ex.length
+    ? `<div class="ev-list">${ex.map(x => `<div class="ev adj"><div><div class="n">${esc(x.name)}</div><div class="s">Excluido el ${esc(fmtDateTime(x.ts))}</div></div>
+        <div class="p"><button class="btn ghost xs" data-act="ex-del" data-name="${esc(x.name)}">Devolver</button></div></div>`).join('')}</div>`
+    : '<p class="hint" style="margin:0">Nadie excluido.</p>';
 }
 
 /* reglas de la liga: se recalcula todo al instante */
