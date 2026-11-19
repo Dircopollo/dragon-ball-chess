@@ -841,7 +841,7 @@ details.tier[open]>summary .chev{transform:rotate(180deg)}
           <button class="btn ghost" data-act="copy-backup">📄 Copiar copia</button>
           <button class="btn ghost" data-act="paste-backup">📋 Pegar copia</button>
         </div>
-        <div class="h-sub">Contraseña de edición</div>
+        <div class="h-sub">Desbloqueo de edición</div>
         <div id="lockBox"></div>
         <div class="h-sub">Guardado automático en un archivo</div>
         <div id="fileBox"></div>
@@ -1759,72 +1759,52 @@ const Persist = {
 
 /* ── 22-lock.js ── */
 /* ═══════════════════════════════════════════════════════════
-   CONTRASEÑA DE EDICIÓN
-   · La contraseña NO está en el código: se crea al configurarla.
-   · Solo se guarda un hash PBKDF2-SHA256 con sal aleatoria (600 000 vueltas); no se puede deshacer.
-   · Con contraseña puesta, la app arranca en modo «solo ver» y pide la clave para editar.
-   Límite honesto: es una app sin servidor; frena a quien use tu copia, pero no sustituye a un servidor.
+   BLOQUEO DE EDICIÓN
+   · No hay contraseña local: editar se desbloquea con la cuenta de la liga (la misma de ☁️ Publicar).
+   · Esa cuenta vive en Supabase; en este archivo no hay ninguna contraseña ni su huella.
+   · Al desbloquear queda la sesión iniciada, así que publicar no vuelve a pedir nada.
 ═══════════════════════════════════════════════════════════ */
-const LOCK_KEY = 'dbc_lock', LOCK_ITER = 600000;
-/* huella (sal + hash) de la contraseña de fábrica; la contraseña en sí no está en ningún sitio del archivo */
-const DEFAULT_LOCK = {"v": 1, "iter": 600000, "salt": "1/b4oxR2DYXM6b/er7CZxQ==", "hash": "a6MBT+Tmx4jB3fsUnWwof7nCzlEzm4gk03wZjI+efCw="};
-const b64 = u8 => btoa(String.fromCharCode(...u8)), unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-async function lockHash(pw, salt, iter) {
-  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
-  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, k, 256));
-}
 const Lock = {
   open: false, fails: 0, until: 0,
-  rec() {
-    let r = null;
-    try { r = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null'); } catch (e) { r = null; }
-    if (r && r.removed) return null;                 /* contraseña quitada a propósito en este dispositivo */
-    return (r && r.hash) ? r : DEFAULT_LOCK;         /* si no hay una propia, vale la de fábrica */
-  },
-  isSet() { const r = this.rec(); return !!(r && r.hash); },
-  locked() { return this.isSet() && !this.open; },
-  supported() { return !!(window.crypto && crypto.subtle); },
-  async set(pw) {
-    const salt = crypto.getRandomValues(new Uint8Array(16)), h = await lockHash(pw, salt, LOCK_ITER);
-    localStorage.setItem(LOCK_KEY, JSON.stringify({ v: 1, iter: LOCK_ITER, salt: b64(salt), hash: b64(h) }));
-    this.open = true; this.paint();
-  },
-  async check(pw) {
-    if (Date.now() < this.until) return false;
-    const r = this.rec(); if (!r) return true;
-    const h = await lockHash(pw, unb64(r.salt), r.iter), a = unb64(r.hash);
-    let d = a.length ^ h.length; for (let i = 0; i < a.length; i++) d |= a[i] ^ h[i];
-    if (d === 0) { this.fails = 0; this.open = true; this.paint(); return true; }
-    if (++this.fails >= 3) { this.until = Date.now() + Math.min(60000, 5000 * this.fails); }
-    return false;
-  },
-  clear() { try { if (DEFAULT_LOCK) localStorage.setItem(LOCK_KEY, JSON.stringify({ removed: 1 })); else localStorage.removeItem(LOCK_KEY); } catch (e) { /* nada */ } this.open = false; this.paint(); },
-  lock() { this.open = false; this.paint(); },
+  isSet() { return true; },
+  signed() { try { return Cloud.signedIn(); } catch (e) { return false; } },
+  locked() { return !(this.open || this.signed()); },
+  supported() { return true; },
+  lock() { try { Cloud.signOut(); } catch (e) { /* nada */ } this.open = false; this.paint(); },
   paint() {
     document.body.classList.toggle('is-locked', this.locked());
     const b = $('#lockBtn');
     if (b) { b.hidden = !this.isSet(); b.textContent = this.locked() ? '🔒' : '🔓'; b.title = this.locked() ? 'Solo lectura: toca para editar' : 'Edición activa: toca para bloquear'; }
     if (typeof renderLockPanel === 'function') renderLockPanel();
   },
-  ask(title = 'Contraseña de edición') {
+  ask(title = 'Desbloquear edición') {
     return new Promise(res => {
       const ov = Modal.open(`
         <div class="m-head"><div class="m-title">🔒 ${title}</div><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
-        <p class="hint" style="margin-top:0">La liga está en modo solo lectura. Escribe la contraseña para poder editar.</p>
+        <p class="hint" style="margin-top:0">La liga está en modo solo lectura. Entra con la cuenta de la liga (la misma que usas para ☁️ Publicar).</p>
+        <input class="input" id="lkEmail" type="email" autocomplete="username" placeholder="Correo" style="width:100%;margin-bottom:8px" value="${esc(localStorage.getItem('dbc_cloud_email') || '')}">
         <input class="input" id="lkPw" type="password" autocomplete="current-password" placeholder="Contraseña" style="width:100%">
         <p class="hint" id="lkMsg" style="color:var(--red,#ff6b6b);min-height:1.2em"></p>
         <div class="m-actions"><button class="btn ghost" data-act="modal-close">Cancelar</button><button class="btn primary" id="lkGo">Desbloquear</button></div>`, { cls: 'small', center: true });
-      const pw = $('#lkPw', ov), msg = $('#lkMsg', ov);
+      const em = $('#lkEmail', ov), pw = $('#lkPw', ov), msg = $('#lkMsg', ov);
       let done = false; const fin = v => { if (!done) { done = true; res(v); } };
       const go = async () => {
         if (Date.now() < this.until) { msg.textContent = `Demasiados intentos. Espera ${Math.ceil((this.until - Date.now()) / 1000)} s.`; return; }
-        msg.textContent = 'Comprobando…';
-        if (await this.check(pw.value)) { Modal.close(ov); fin(true); } else { msg.textContent = 'Contraseña incorrecta.'; pw.select(); }
+        if (!Cloud.ready) { msg.textContent = 'Falta configurar la dirección de Supabase en el archivo.'; return; }
+        msg.style.color = ''; msg.textContent = 'Comprobando…';
+        try {
+          await Cloud.signIn(em.value.trim(), pw.value);
+          try { localStorage.setItem('dbc_cloud_email', em.value.trim()); } catch (e) { /* nada */ }
+          this.fails = 0; Modal.close(ov); fin(true);
+        } catch (e) {
+          if (++this.fails >= 3) this.until = Date.now() + Math.min(60000, 5000 * this.fails);
+          msg.style.color = 'var(--red,#ff6b6b)'; msg.textContent = e.message; pw.select();
+        }
       };
       $('#lkGo', ov).onclick = go;
       pw.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
       new MutationObserver(() => { if (!document.body.contains(ov)) fin(false); }).observe(document.body, { childList: true, subtree: true });
-      setTimeout(() => pw.focus(), 60);
+      setTimeout(() => (em.value ? pw : em).focus(), 60);
     });
   }
 };
@@ -1847,37 +1827,14 @@ function guard(e) {
 /* los campos de ajustes no se pueden ni teclear estando bloqueado */
 document.addEventListener('beforeinput', e => { if (Lock.locked() && e.target.matches && e.target.matches(EDIT_FIELDS)) e.preventDefault(); }, true);
 
-ACTIONS['lock-toggle'] = async () => { if (Lock.locked()) { if (await Lock.ask()) toast('Edición desbloqueada.', 'ok', 2500); } else { Lock.lock(); toast('Solo lectura activado.', 'ok', 2500); } };
+ACTIONS['lock-toggle'] = async () => { if (Lock.locked()) { if (await Lock.ask()) toast('Edición desbloqueada.', 'ok', 2500); } else { Lock.lock(); toast('Solo lectura activado. Sesión cerrada.', 'ok', 2500); } };
 
 function renderLockPanel() {
   const box = $('#lockBox'); if (!box) return;
-  if (!Lock.supported()) { box.innerHTML = '<p class="hint" style="margin:0">Este navegador no permite crear contraseñas seguras aquí (abre la página en https o en Chrome/Safari actual).</p>'; return; }
-  if (!Lock.isSet()) box.innerHTML = '<p class="hint" style="margin:0 0 10px">Sin contraseña, cualquiera con esta página puede editar. Ponla y la liga arrancará en «solo ver».</p><button class="btn blue" data-act="lock-create">🔑 Crear contraseña</button>';
-  else box.innerHTML = `<p class="hint" style="margin:0 0 10px">${Lock.locked() ? '🔒 Solo lectura.' : '🔓 Edición activa.'} La contraseña no está en el código; solo se guarda su huella cifrada.</p><div class="row wrap btn-grid"><button class="btn blue" data-act="lock-toggle">${Lock.locked() ? 'Desbloquear' : 'Bloquear ahora'}</button><button class="btn ghost" data-act="lock-change">Cambiar</button><button class="btn danger" data-act="lock-remove">Quitar</button></div>`;
+  let em = ''; try { em = Cloud.email || localStorage.getItem('dbc_cloud_email') || ''; } catch (e) { /* nada */ }
+  box.innerHTML = `<p class="hint" style="margin:0 0 10px">${Lock.locked() ? '🔒 Solo lectura.' : '🔓 Edición activa.'} Se desbloquea con la cuenta de la liga${em ? ' (<b>' + esc(em) + '</b>)' : ''}, la misma que usas para ☁️ Publicar: un solo correo y una sola contraseña. Si quieres cambiarla, se hace en el panel de Supabase.</p>
+    <div class="row wrap btn-grid"><button class="btn blue" data-act="lock-toggle">${Lock.locked() ? 'Desbloquear' : 'Bloquear ahora'}</button></div>`;
 }
-async function newPassword(title) {
-  return new Promise(res => {
-    const ov = Modal.open(`
-      <div class="m-head"><div class="m-title">🔑 ${title}</div><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
-      <p class="hint" style="margin-top:0">Mínimo 8 caracteres. Si la olvidas, solo se recupera borrando los datos del navegador de esta página: guárdala bien.</p>
-      <input class="input" id="npA" type="password" autocomplete="new-password" placeholder="Nueva contraseña" style="width:100%;margin-bottom:8px">
-      <input class="input" id="npB" type="password" autocomplete="new-password" placeholder="Repetir contraseña" style="width:100%">
-      <p class="hint" id="npMsg" style="color:var(--red,#ff6b6b);min-height:1.2em"></p>
-      <div class="m-actions"><button class="btn ghost" data-act="modal-close">Cancelar</button><button class="btn primary" id="npGo">Guardar</button></div>`, { cls: 'small', center: true });
-    let done = false; const fin = v => { if (!done) { done = true; res(v); } };
-    $('#npGo', ov).onclick = async () => {
-      const a = $('#npA', ov).value, b = $('#npB', ov).value, m = $('#npMsg', ov);
-      if (a.length < 8) { m.textContent = 'Usa al menos 8 caracteres.'; return; }
-      if (a !== b) { m.textContent = 'No coinciden.'; return; }
-      await Lock.set(a); Modal.close(ov); fin(true);
-    };
-    new MutationObserver(() => { if (!document.body.contains(ov)) fin(false); }).observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => $('#npA', ov).focus(), 60);
-  });
-}
-ACTIONS['lock-create'] = async () => { if (await newPassword('Crear contraseña')) toast('Contraseña creada. La liga queda en edición hasta que la bloquees o recargues.', 'ok', 5000); };
-ACTIONS['lock-change'] = async () => { if (Lock.locked() && !(await Lock.ask('Contraseña actual'))) return; if (await newPassword('Nueva contraseña')) toast('Contraseña cambiada.', 'ok'); };
-ACTIONS['lock-remove'] = async () => { if (Lock.locked() && !(await Lock.ask('Contraseña actual'))) return; if (await Dlg.confirm({ title: 'Quitar contraseña', text: 'Cualquiera podrá editar esta liga.', ok: 'Quitar', danger: true })) { Lock.clear(); toast('Contraseña eliminada.', 'ok'); } };
 
 /* ── 25-cloud.js ── */
 /* ═══════════════════════════════════════════════════════════
@@ -1950,10 +1907,11 @@ const Cloud = {
   async signIn(email, password) {
     const r = await fetch(this.api('/auth/v1/token?grant_type=password'), { method: 'POST', headers: { apikey: CLOUD_CFG.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error_description || j.msg || j.message || 'Correo o contraseña incorrectos.');
+    if (!r.ok) throw new Error(r.status === 400 || j.error_code === 'invalid_credentials' ? 'Correo o contraseña incorrectos.' : (j.error_description || j.msg || j.message || 'No se pudo iniciar sesión.'));
     const tok = { access_token: j.access_token, exp: Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: (j.user && j.user.email) || email };
     try { sessionStorage.setItem(CLOUD_TOKEN, JSON.stringify(tok)); } catch (e) { /* nada */ }
     this.email = tok.email;
+    Lock.open = true; try { Lock.paint(); } catch (e) { /* nada */ }   /* la misma cuenta desbloquea la edición */
     return tok;
   },
   async push() {
@@ -2034,7 +1992,7 @@ function renderCloudPanel() {
     <p class="hint">Publicar sube la liga tal como está ahora (torneos, reglas y ajustes) a la página pública. Los visitantes solo pueden mirar; para publicar hace falta tu cuenta de admin.</p>`;
 }
 ACTIONS['cloud-publish'] = () => Cloud.publish();
-ACTIONS['cloud-signout'] = () => { Cloud.signOut(); toast('Sesión cerrada.', 'ok', 2500); };
+ACTIONS['cloud-signout'] = () => { Lock.lock(); toast('Sesión cerrada.', 'ok', 2500); };
 ACTIONS['cloud-refresh'] = () => Cloud.pull();
 
 /* ── modo página pública: sin edición ni configuración ── */
