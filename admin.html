@@ -653,6 +653,18 @@ html[data-theme=light] .stat b[style*=color]{filter:brightness(.6) saturate(1.3)
 #themeBtn{font-size:1.02rem}
 /* ── mensajes listos para copiar ── */
 .msg-text,textarea.input.msg-text{width:100%;height:320px;min-height:240px;resize:vertical;font:500 .92rem/1.5 var(--f-ui);white-space:pre-wrap}
+/* ── récords ── */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:14px}
+.rec{display:flex;gap:12px;align-items:center;background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.rec-i{font-size:1.9rem;line-height:1;flex:none}
+.rec-b{min-width:0}
+.rec-b small{display:block;font-family:var(--f-num);font-size:.54rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.rec-b b{display:block;font-family:var(--f-num);font-size:1.25rem;font-weight:900;color:var(--gold2);margin:3px 0 2px}
+.rec-w{font-weight:700;word-break:break-word}
+.rec-p{cursor:pointer;color:var(--text);border-bottom:1px dotted var(--line2)}
+.rec-p:hover{color:var(--gold)}
+.rec-d{font-size:.8rem;color:var(--dim);margin-top:2px}
+.rec-tie{color:var(--muted);font-weight:600;font-size:.9rem}
 /* página pública: solo lectura */
 .cloud-pill{cursor:pointer;border:1px solid var(--line);background:var(--glass);color:var(--dim);font:inherit;font-size:.72rem;padding:5px 10px;border-radius:999px}
 .viewer #lockBtn,.viewer #saveBtn,.viewer #cloudBtn,.viewer .top-actions [data-act="goto-import"],.viewer .tab[data-tab="diplomas"],.viewer .tab[data-tab="ajustes"],.viewer .tab[data-tab="buzon"],
@@ -709,6 +721,10 @@ html[data-theme=light] .stat b[style*=color]{filter:brightness(.6) saturate(1.3)
       <div class="panel" id="champPanel" hidden>
         <div class="h-section">🏆 Campeones de temporadas anteriores</div>
         <div class="champ-list" id="champBox"></div>
+      </div>
+      <div class="panel" id="recPanel" hidden>
+        <div class="row wrap" style="justify-content:space-between;gap:10px"><div class="h-section">🏅 Récords</div><div id="recBar"></div></div>
+        <div class="rec-grid" id="recBox"></div>
       </div>
       <div class="panel" id="evoPanel" hidden>
         <div class="h-section">⚡ Evoluciones recientes</div>
@@ -3616,6 +3632,8 @@ function renderLiga() {
       </div>`).join('');
   } else chP.hidden = true;
 
+  try { Rec.paint(); } catch (e) { console.error(e); }
+
   /* evoluciones */
   const evoP = $('#evoPanel');
   if (D.promotions.length) {
@@ -4956,6 +4974,74 @@ ACTIONS['copy-follow'] = () => {
   if (!derived().list.length) { toast('Todavía no hay jugadores en la clasificación.', 'warn', 3500); return; }
   Msg.show('📈 Seguimiento del Top 10', Msg.follow());
 };
+
+/* ═══════════════════════════════════════════════════════════
+   RÉCORDS · histórico y por temporada
+═══════════════════════════════════════════════════════════ */
+const Rec = {
+  scope: 'all',
+  seasons(D) {
+    const out = [];
+    for (let n = Math.max(1, D.season.min); n <= D.season.cur; n++) if (D.T.some(t => seasonOf(tournamentTs(t)) === n)) out.push(n);
+    return out;
+  },
+  pick(c) {
+    c = c.filter(x => x.v != null && Number.isFinite(x.v));
+    if (!c.length) return null;
+    const m = Math.max(...c.map(x => x.v)), hs = [], seen = new Set();
+    c.filter(x => x.v === m).forEach(x => { const k = x.p ? x.p.key : 't:' + x.d; if (!seen.has(k)) { seen.add(k); hs.push(x); } });
+    return { v: m, hs };
+  },
+  compute(D, scope) {
+    const all = scope === 'all', inS = ts => all || seasonOf(ts) === scope;
+    const P = D.all, ent = [];
+    P.forEach(p => p.entries.forEach(ev => { if (inS(ev.ts)) ent.push({ p, ev }); }));
+    const nums = []; for (let n = Math.max(1, D.season.min); n <= D.season.cur; n++) nums.push(n);
+    const seasonsOf = all ? nums : [scope];
+    const pe = [];   /* puntos por temporada, podios y torneos jugados */
+    P.forEach(p => seasonsOf.forEach(n => { const s = seasonStats(p, n); if (s.tCount) pe.push({ p, s, n }); }));
+    const per = (f) => ent.map(x => f(x)).filter(Boolean);
+    const out = [];
+    const add = (icon, title, c, fmt, detail) => { const r = this.pick(c); if (r) out.push({ icon, title, r, fmt, detail }); };
+    add('👑', all ? 'Más puntos en una temporada' : 'Más puntos', pe.map(x => ({ p: x.p, v: x.s.pts, d: seasonName(x.n) })), v => fmtPts(v) + ' pts', h => all ? h.d : '');
+    add('⚡', 'Ki más alto', per(x => x.ev.ki != null ? { p: x.p, v: x.ev.ki, d: x.ev.t.name } : null), v => '⚡ ' + fmtKi(v), h => h.d);
+    add('🚀', 'Mayor subida de Ki en un torneo', per(x => x.ev.kiDelta > 0 ? { p: x.p, v: x.ev.kiDelta, d: x.ev.t.name } : null), v => '▲ ' + Math.round(v), h => h.d);
+    add('⚔️', 'Más victorias en un torneo', per(x => x.ev.e.w != null ? { p: x.p, v: x.ev.e.w, d: x.ev.t.name } : null), v => v + (v === 1 ? ' victoria' : ' victorias'), h => h.d);
+    add('🥇', 'Más podios', pe.length ? (all ? P.filter(p => p.podiums).map(p => ({ p, v: p.podiums, d: '', pod: p.podium })) : pe.filter(x => x.s.podium[1] + x.s.podium[2] + x.s.podium[3]).map(x => ({ p: x.p, v: x.s.podium[1] + x.s.podium[2] + x.s.podium[3], d: '', pod: x.s.podium }))) : [], v => v + (v === 1 ? ' podio' : ' podios'), h => h.pod ? `🥇${h.pod[1]} · 🥈${h.pod[2]} · 🥉${h.pod[3]}` : '');
+    add('🎯', 'Mejor rendimiento en un torneo', per(x => x.ev.e.perf != null ? { p: x.p, v: x.ev.e.perf, d: x.ev.t.name } : null), v => 'Rend. ' + Math.round(v), h => h.d);
+    add('👥', 'Torneo con más jugadores', D.T.filter(t => inS(tournamentTs(t))).map(t => ({ p: null, v: t.nbPlayers || t.results.length, d: t.name })), v => v + ' jugadores', h => h.d);
+    add('📅', 'Más torneos jugados', all ? P.filter(p => p.tCount).map(p => ({ p, v: p.tCount, d: '' })) : pe.map(x => ({ p: x.p, v: x.s.tCount, d: '' })), v => v + (v === 1 ? ' torneo' : ' torneos'), () => '');
+    return out;
+  },
+  html(D) {
+    const seasons = this.seasons(D);
+    if (this.scope !== 'all' && !seasons.includes(this.scope)) this.scope = 'all';
+    const chips = [['all', 'Histórico', 'Todos los tiempos']].concat(seasons.map(n => [n, 'T' + n, seasonName(n)]));
+    const bar = `<div class="seg" role="group" aria-label="Ámbito de los récords">${chips.map(([k, l, t]) => `<button type="button" class="${this.scope === k ? 'on' : ''}" data-act="rec-scope" data-n="${k}" title="${esc(t)}">${esc(l)}</button>`).join('')}</div>`;
+    const recs = this.compute(D, this.scope);
+    const who = r => {
+      const named = r.hs.filter(h => h.p);
+      if (!named.length) return '';
+      if (named.length > 3) return `<span class="rec-tie">Empate entre ${named.length} jugadores</span>`;
+      return named.map(h => `<span class="rec-p" role="button" tabindex="0" data-act="open-player" data-key="${esc(h.p.key)}">${esc(h.p.name)}</span>`).join(', ');
+    };
+    const cards = recs.map(x => {
+      const det = x.r.hs.length === 1 ? x.detail(x.r.hs[0]) : '';
+      return `<div class="rec"><div class="rec-i" aria-hidden="true">${x.icon}</div><div class="rec-b"><small>${esc(x.title)}</small><b>${esc(x.fmt(x.r.v))}</b><div class="rec-w">${who(x.r)}</div>${det ? `<div class="rec-d">${esc(det)}</div>` : ''}</div></div>`;
+    }).join('');
+    return { bar, cards, n: recs.length };
+  },
+  paint() {
+    const panel = $('#recPanel'); if (!panel) return;
+    const D = derived();
+    if (!D.T.length) { panel.hidden = true; return; }
+    const h = this.html(D);
+    panel.hidden = !h.n;
+    $('#recBar').innerHTML = h.bar;
+    $('#recBox').innerHTML = h.cards;
+  }
+};
+ACTIONS['rec-scope'] = el => { const v = el.dataset.n; Rec.scope = v === 'all' ? 'all' : (parseInt(v, 10) || 'all'); Rec.paint(); };
 
 /* ── 73-ui-studio.js ── */
 /* ═══════════════════════════════════════════════════════════
