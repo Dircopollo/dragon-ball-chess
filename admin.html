@@ -5,6 +5,8 @@
 <script>document.documentElement.classList.add('pre-gate');setTimeout(function(){document.documentElement.classList.remove('pre-gate')},6000)</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#07070f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Dragon Ball Chess · Liga, Rangos y Diplomas</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='30%25' r='75%25'%3E%3Cstop offset='0' stop-color='%23fff3a8'/%3E%3Cstop offset='.45' stop-color='%23ffb52e'/%3E%3Cstop offset='1' stop-color='%23c25200'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23g)'/%3E%3Ctext x='32' y='43' font-size='30' text-anchor='middle' fill='%23c4150e' font-family='serif'%3E%E2%98%85%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -621,6 +623,8 @@ html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!import
 .gate-key{font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all;user-select:all;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
 .gate-link{background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;font:inherit;padding:2px}
 
+.banner.ann{background:linear-gradient(90deg,rgba(245,197,24,.14),rgba(255,107,0,.10));border-color:rgba(245,197,24,.45)}
+#annPanel .field{margin-top:10px}
 /* página pública: solo lectura */
 .cloud-pill{cursor:pointer;border:1px solid var(--line);background:var(--glass);color:var(--dim);font:inherit;font-size:.72rem;padding:5px 10px;border-radius:999px}
 .viewer #lockBtn,.viewer #saveBtn,.viewer #cloudBtn,.viewer .top-actions [data-act="goto-import"],.viewer .tab[data-tab="diplomas"],.viewer .tab[data-tab="ajustes"],.viewer .tab[data-tab="buzon"],
@@ -666,6 +670,7 @@ html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!import
     <!-- ═════════ LIGA ═════════ -->
     <section class="view" id="view-liga" hidden>
       <div id="legacyBanner"></div>
+      <div id="annBox"></div>
       <div class="season-bar" id="seasonBar"></div>
       <div class="stats-grid" id="statsGrid"></div>
       <div class="panel" id="hofPanel" hidden>
@@ -698,6 +703,7 @@ html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!import
             </select>
             <button class="btn ghost sm" id="sortDir" data-act="sort-dir" title="Invertir orden" aria-label="Invertir orden">↓</button>
             <button class="btn gold sm" data-act="top-image" title="Imagen Top 10 para compartir">🖼️ Top 10</button>
+            <button class="btn ghost sm" data-act="copy-summary" title="Copiar el Top 10 como texto para Discord o WhatsApp">📋 Resumen</button>
           </div>
         </div>
         <div id="lbBox"></div>
@@ -887,6 +893,27 @@ html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!import
         </div>
         <div class="ladder-info" id="posBonusInfo" aria-live="polite"></div>
         <p class="hint" style="margin-top:8px">Cada jugador suma sus puntos de Lichess (1 por victoria, ½ por empate) más el extra de su puesto: el extra baja en línea recta del 1.º al último puesto con premio. Los Swiss dan el doble que las Arenas para compensar que tienen menos partidas. Cambiar estas reglas recalcula todo al instante.</p>
+      </div>
+
+      <div class="panel" id="annPanel">
+        <div class="h-section">📣 Anuncio de próximo torneo</div>
+        <label class="row" style="gap:8px;margin-top:12px"><input type="checkbox" id="annOn"> Mostrar el anuncio en la página pública</label>
+        <div class="field"><label class="lbl" for="annText">Mensaje</label><input class="input" id="annText" type="text" maxlength="160" placeholder="Torneo Arena de los viernes" autocomplete="off"></div>
+        <div class="field-row">
+          <div class="field"><label class="lbl" for="annWhen">Fecha y hora (tu hora local)</label><input class="input" id="annWhen" type="datetime-local"></div>
+          <div class="field"><label class="lbl" for="annUrl">Enlace (Lichess)</label><input class="input" id="annUrl" type="url" maxlength="200" placeholder="https://lichess.org/tournament/…" autocomplete="off"></div>
+        </div>
+        <p class="hint" style="margin-top:8px">Sale arriba en la página pública con cuenta atrás y se oculta solo 3 horas después de la fecha. Se publica con ☁️ Publicar.</p>
+      </div>
+
+      <div class="panel" id="secPanel">
+        <div class="h-section">🔐 Verificación en dos pasos</div>
+        <div id="secBox" style="margin-top:10px"></div>
+      </div>
+
+      <div class="panel" id="verPanel">
+        <div class="h-section">🕘 Versiones publicadas</div>
+        <div id="verBox" style="margin-top:10px"></div>
       </div>
 
       <div class="panel" id="cloudPanel">
@@ -1400,7 +1427,8 @@ const DEFAULT_SETTINGS = () => ({
   seasonStart: null,   /* AAAA-MM-DD; null = el día del primer torneo */
   seasonDays: 30,
   quality: 2400,
-  format: 'png'
+  format: 'png',
+  announce: { on: false, text: '', when: '', url: '' }
 });
 const freshState = () => ({ v: 2, settings: DEFAULT_SETTINGS(), tournaments: [], adjustments: [], excluded: [], merges: [], lastUpdated: null, lastBackup: null, savedAt: null });
 
@@ -1500,6 +1528,7 @@ function sanitize(d) {
   s.seasonStart = /^\d{4}-\d{2}-\d{2}$/.test(String(s.seasonStart || '')) && Number.isFinite(Date.parse(s.seasonStart)) ? s.seasonStart : null;
   s.quality = [1600, 2400, 3508].includes(+s.quality) ? +s.quality : 2400;
   s.format = s.format === 'jpg' ? 'jpg' : 'png';
+  s.announce = sanAnnounce(ds.announce);
   s.logo = typeof s.logo === 'string' && s.logo.startsWith('data:image/') ? s.logo : null;
   ['org', 'tagline', 'sig1Name', 'sig1Role', 'sig2Name', 'sig2Role'].forEach(k => s[k] = String(s[k] ?? '').slice(0, 60));
   return {
@@ -3459,6 +3488,7 @@ function renderAll() {
   renderBrand();
   renderTab(UI.tab);
   refreshPlayerModal();
+  try { Ext.hashTry(); } catch (e) { console.error(e); }
 }
 
 function renderBrand() {
@@ -3514,6 +3544,7 @@ function demoBannerHtml() {
 /* ═════════════ LIGA ═════════════ */
 function renderLiga() {
   const D = derived();
+  Ext.paintAnn();
   $('#legacyBanner').innerHTML = VIEWER ? '' : demoBannerHtml() + legacyBannerHtml() + backupBannerHtml();
 
   /* estadísticas */
@@ -4093,6 +4124,7 @@ function playerHtml(p) {
     <div class="m-actions" style="justify-content:flex-start">
       <button class="btn blue sm" data-act="pm-card">🖼️ Tarjeta para compartir</button>
       <button class="btn purple sm" data-act="pm-cert">🐉 Certificado de rango</button>
+      <button class="btn ghost sm" data-act="pm-link">🔗 Copiar enlace</button>
     </div>
     <div class="ex-zone merge-zone">
       <div class="h-sub">Unir cuentas</div>
@@ -4610,6 +4642,194 @@ ACTIONS['fb-img-dl'] = async el => {
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'fbSubject') { e.preventDefault(); const m = $('#fbMsg', FB.ov); if (m) m.focus(); } });
 
 
+/* ── 74-extras.js ── */
+/* ═══════════════════════════════════════════════════════════
+   EXTRAS · enlace a un jugador, anuncio de torneo, resumen para copiar,
+   versiones publicadas (restaurar) y segundo dispositivo de verificación
+═══════════════════════════════════════════════════════════ */
+function sanAnnounce(a) {
+  a = a && typeof a === 'object' ? a : {};
+  const t = Date.parse(a.when);
+  return {
+    on: a.on === true,
+    text: String(a.text ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 160),
+    when: Number.isFinite(t) ? new Date(t).toISOString() : '',
+    url: /^https:\/\/[^\s<>"'\\]{3,190}$/i.test(String(a.url || '')) ? String(a.url) : ''
+  };
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* nada */ }
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove(); return ok;
+}
+
+const Ext = {
+  _hk: null, factors: null, vers: null,
+
+  init() {
+    this._hk = this.hashKey();
+    window.addEventListener('hashchange', () => { const k = this.hashKey(); if (k) { this._hk = k; this.hashTry(); } });
+    setInterval(() => this.paintAnn(), 30000);
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { /* nada */ });
+    if (VIEWER) return;
+    const save = () => {
+      const wv = $('#annWhen').value;
+      const url = $('#annUrl').value.trim();
+      const a = sanAnnounce({ on: $('#annOn').checked, text: $('#annText').value, when: wv ? new Date(wv).toISOString() : '', url });
+      S.settings.announce = a; S.lastUpdated = Date.now(); commit();
+      if (url && !a.url) toast('El enlace debe empezar por https:// y no llevar espacios.', 'warn', 5000);
+      else toast('Anuncio guardado. Pulsa ☁️ Publicar para que lo vea el público.', 'ok', 3200);
+    };
+    ['annOn', 'annText', 'annWhen', 'annUrl'].forEach(id => { const el = $('#' + id); if (el) el.addEventListener('change', save); });
+  },
+
+  /* ── enlace directo a un jugador ── */
+  hashKey() { const m = /^#jugador=(.+)$/.exec(location.hash); try { return m ? decodeURIComponent(m[1]).toLowerCase() : null; } catch (e) { return null; } },
+  hashTry() {
+    if (!this._hk || !playerByKey(this._hk)) return;
+    const k = this._hk; this._hk = null; openPlayer(k);
+  },
+
+  /* ── anuncio ── */
+  left(ms) {
+    const m = Math.floor(ms / 6e4), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60;
+    return d ? `en ${d} d ${h} h` : h ? `en ${h} h ${mi} min` : `en ${Math.max(1, mi)} min`;
+  },
+  annHtml() {
+    const a = S.settings.announce;
+    if (!a || !a.on || !a.text) return '';
+    let when = '';
+    if (a.when) {
+      const t = Date.parse(a.when), d = t - Date.now();
+      if (d < -3 * 36e5) return '';
+      when = d > 0 ? ` · ⏳ ${this.left(d)} · ${esc(fmtDateTime(t))}` : ' · 🔴 ¡En curso!';
+    }
+    const link = a.url ? `<a class="btn gold sm" href="${esc(a.url)}" target="_blank" rel="noopener noreferrer">Ir al torneo ↗</a>` : '';
+    return `<div class="banner ann"><span>📣 <b>${esc(a.text)}</b>${when}</span>${link}</div>`;
+  },
+  paintAnn() { const b = $('#annBox'); if (b) b.innerHTML = this.annHtml(); },
+
+  /* ── resumen para pegar en Discord / WhatsApp ── */
+  summary() {
+    const D = derived(), medals = ['🥇', '🥈', '🥉'];
+    const lines = D.list.slice(0, 10).map((p, i) => `${medals[i] || (i + 1) + '.'} ${p.name} · ${fmtPts(p.s.pts)} pts · ${p.rank.emoji} ${p.rank.name}`);
+    const url = CLOUD_CFG.publicUrl || '';
+    return `🏆 ${S.settings.org || 'Dragon Ball Chess'} · ${D.season.name}\n\n${lines.join('\n')}${url ? '\n\n🔗 ' + url : ''}`;
+  },
+
+  /* ── panel de Ajustes ── */
+  paintAjustes() {
+    const a = S.settings.announce || sanAnnounce(null);
+    const on = $('#annOn'); if (on && on !== document.activeElement) on.checked = !!a.on;
+    setVal('#annText', a.text); setVal('#annUrl', a.url);
+    let w = ''; if (a.when) { const d = new Date(a.when), p = n => String(n).padStart(2, '0'); w = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+    setVal('#annWhen', w);
+    this.paintSec(); this.paintVer();
+  },
+
+  /* ── segundo dispositivo de verificación ── */
+  async secLoad() {
+    const t = Cloud.token(); if (!t) { this.factors = null; this.paintSec(); return; }
+    try { const u = await Cloud.authReq('GET', '/auth/v1/user', null, t.access_token); this.factors = (u.factors || []).filter(f => f.factor_type === 'totp'); }
+    catch (e) { this.factors = null; toast('No se pudo leer tu seguridad: ' + e.message, 'err', 5000); }
+    this.paintSec();
+  },
+  paintSec() {
+    const box = $('#secBox'); if (!box) return;
+    if (!Cloud.signedIn()) { box.innerHTML = '<p class="hint" style="margin:0">Inicia sesión para ver tus dispositivos.</p>'; return; }
+    if (this.factors === null) { box.innerHTML = '<div class="row wrap btn-grid"><button class="btn ghost" data-act="sec-load">Ver mis dispositivos</button></div>'; return; }
+    const ok = this.factors.filter(f => f.status === 'verified');
+    box.innerHTML = `<p class="hint" style="margin:0 0 10px">${ok.length ? ok.map(f => `📱 <b>${esc(f.friendly_name || 'Dispositivo')}</b> · activo desde ${esc(fmtDate(f.created_at))}`).join('<br>') : 'Sin dispositivos verificados.'}</p>
+      ${ok.length < 2 ? '<p class="hint" style="margin:0 0 10px;color:var(--gold2)">⚠ Solo tienes un dispositivo y no hay códigos de recuperación. Añade un segundo (otro teléfono o un gestor de contraseñas).</p>' : ''}
+      <div class="row wrap btn-grid"><button class="btn primary" data-act="sec-add">➕ Añadir otro dispositivo</button><button class="btn ghost" data-act="sec-load">🔄 Actualizar</button></div>`;
+  },
+
+  /* ── versiones publicadas ── */
+  async verLoad() {
+    const t = Cloud.token(); if (!t) { this.vers = null; this.paintVer(); return; }
+    try {
+      const r = await fetch(Cloud.api('/rest/v1/liga_versiones?select=id,created_at&order=id.desc&limit=20'), { headers: Cloud.headers() });
+      if (r.status === 404) { this.vers = 'none'; }
+      else if (r.status === 401 || r.status === 403) { Lock.lock(); return; }
+      else if (!r.ok) throw new Error('Supabase respondió ' + r.status);
+      else this.vers = await r.json();
+    } catch (e) { this.vers = null; toast('No se pudieron leer las versiones: ' + e.message, 'err', 5000); }
+    this.paintVer();
+  },
+  paintVer() {
+    const box = $('#verBox'); if (!box) return;
+    if (!Cloud.signedIn()) { box.innerHTML = '<p class="hint" style="margin:0">Inicia sesión para ver las versiones.</p>'; return; }
+    if (this.vers === null) { box.innerHTML = '<div class="row wrap btn-grid"><button class="btn ghost" data-act="ver-load">Ver versiones anteriores</button></div>'; return; }
+    if (this.vers === 'none') { box.innerHTML = '<p class="hint" style="margin:0">El historial todavía no está activado en Supabase.</p>'; return; }
+    box.innerHTML = (this.vers.length
+      ? `<p class="hint" style="margin:0 0 10px">Cada vez que publicas, la versión anterior queda guardada (las últimas 20).</p>` + this.vers.map(v => `<div class="ev adj" style="margin-bottom:6px"><div><div class="n">🕘 ${esc(fmtDateTime(v.created_at))}</div></div><div class="p"><button class="btn ghost xs" data-act="ver-restore" data-id="${esc(String(v.id))}">Restaurar</button></div></div>`).join('')
+      : '<p class="hint" style="margin:0">Aún no hay versiones anteriores: aparecerán cuando vuelvas a publicar.</p>')
+      + '<div class="row wrap btn-grid" style="margin-top:8px"><button class="btn ghost" data-act="ver-load">🔄 Actualizar</button></div>';
+  }
+};
+
+ACTIONS['copy-summary'] = async () => {
+  if (!derived().list.length) { toast('Todavía no hay jugadores en la clasificación.', 'warn', 3500); return; }
+  if (await copyText(Ext.summary())) toast('Resumen copiado. Pégalo en Discord o WhatsApp.', 'ok', 3500);
+  else toast('No se pudo copiar automáticamente.', 'warn', 4500);
+};
+ACTIONS['pm-link'] = async () => {
+  const p = playerByKey(UI.openPlayer); if (!p) return;
+  const base = (CLOUD_CFG.publicUrl || (location.origin + location.pathname.replace(/[^/]*$/, ''))).replace(/#.*$/, '');
+  if (await copyText(base + '#jugador=' + encodeURIComponent(p.key))) toast('Enlace copiado: abre directamente el perfil de ' + p.name + '.', 'ok', 4000);
+  else toast('No se pudo copiar el enlace.', 'warn', 4500);
+};
+ACTIONS['sec-load'] = () => Ext.secLoad();
+ACTIONS['ver-load'] = () => Ext.verLoad();
+ACTIONS['ver-restore'] = async el => {
+  const id = String(el.dataset.id || '').replace(/\D/g, ''); if (!id) return;
+  const ok = await Dlg.confirm({ title: 'Restaurar versión', text: 'Tu liga en este dispositivo se reemplazará por esa versión. Lo que no hayas publicado se pierde. Para que el público la vea, después pulsa ☁️ Publicar.', ok: 'Restaurar', danger: true });
+  if (!ok) return;
+  try {
+    const r = await fetch(Cloud.api('/rest/v1/liga_versiones?id=eq.' + id + '&select=data'), { headers: Cloud.headers() });
+    if (r.status === 401 || r.status === 403) { Lock.lock(); return; }
+    const rows = r.ok ? await r.json() : [];
+    if (!rows.length || !rows[0].data || typeof rows[0].data !== 'object') throw new Error('No se encontró esa versión.');
+    S = sanitize(rows[0].data); S.lastUpdated = Date.now(); _rev++; UI.season = null; commit();
+    toast('Versión restaurada en tu copia. Pulsa ☁️ Publicar para subirla.', 'ok', 6000);
+  } catch (e) { toast('No se pudo restaurar: ' + e.message, 'err', 6000); }
+};
+ACTIONS['sec-add'] = async () => {
+  const t = Cloud.token(); if (!t) return;
+  let en;
+  try { en = await Cloud.authReq('POST', '/auth/v1/factors', { factor_type: 'totp', friendly_name: 'Respaldo ' + Date.now().toString(36), issuer: 'Dragon Ball Chess' }, t.access_token); }
+  catch (e) { toast('No se pudo iniciar: ' + e.message, 'err', 6000); return; }
+  const svg = Gate.svgOf(en.totp && en.totp.qr_code);
+  let done = false;
+  const ov = Modal.open(`
+    <div class="m-head"><div class="m-title">➕ Otro dispositivo</div><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
+    <p class="hint" style="margin-top:0">Escanea el QR con la app de verificación del otro dispositivo (o pega la clave) y escribe el código de 6 dígitos que muestre.</p>
+    <div style="text-align:center">${svg ? '<img class="gate-qr" id="xqQr" alt="Código QR">' : ''}</div>
+    <div class="gate-key" style="margin:8px 0;text-align:center">${esc((en.totp && en.totp.secret) || '')}</div>
+    <input class="input gate-code" id="xqCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" style="width:100%">
+    <p class="hint" id="xqMsg" style="color:var(--red,#ff6b6b);min-height:1.2em"></p>
+    <div class="m-actions"><button class="btn ghost" data-act="modal-close">Cancelar</button><button class="btn primary" id="xqGo">Activar</button></div>`,
+    { cls: 'small', center: true, onClose: () => { if (!done) Cloud.authReq('DELETE', '/auth/v1/factors/' + encodeURIComponent(en.id), null, t.access_token).catch(() => { /* nada */ }); } });
+  const im = $('#xqQr', ov); if (im) { im.onerror = () => im.remove(); im.src = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })); }
+  const code = $('#xqCode', ov), msg = $('#xqMsg', ov), btn = $('#xqGo', ov);
+  const go = async () => {
+    const c = code.value.replace(/\D/g, ''); if (c.length !== 6) { msg.textContent = 'Son 6 dígitos.'; return; }
+    btn.disabled = true; msg.textContent = '';
+    try {
+      const ch = await Cloud.authReq('POST', '/auth/v1/factors/' + encodeURIComponent(en.id) + '/challenge', {}, t.access_token);
+      const s = await Cloud.authReq('POST', '/auth/v1/factors/' + encodeURIComponent(en.id) + '/verify', { challenge_id: ch.id, code: c }, t.access_token);
+      const tok = Gate.mk(s, t.email); if (tok.aal === 'aal2') Cloud.store(tok);
+      done = true; Modal.close(ov); toast('Segundo dispositivo activado.', 'ok', 4000); Ext.secLoad();
+    } catch (e) { msg.textContent = e.status === 400 || e.status === 422 ? 'Código incorrecto.' : e.message; code.value = ''; code.focus(); btn.disabled = false; }
+  };
+  btn.onclick = go; code.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  code.addEventListener('input', () => { code.value = code.value.replace(/\D/g, '').slice(0, 6); if (code.value.length === 6) go(); });
+  setTimeout(() => code.focus(), 60);
+};
+
 /* ── 73-ui-studio.js ── */
 /* ═══════════════════════════════════════════════════════════
    UI · pestaña DIPLOMAS (estudio: vista previa, diseño y lotes)
@@ -4916,7 +5136,7 @@ function renderAjustes() {
   $('#ladderInfo').innerHTML = [['1.er ascenso', T[1]], ['Rango 10', T[9]], ['Rango 20', T[19]], ['Rango 35', T[34]], ['Rango 50', T[49]], ['Rango 70 (máx.)', T[69]]]
     .map(([l, v]) => `<div><b>${fmtPts(v)}</b><small>${l}</small></div>`).join('');
   $('#dataInfo').innerHTML = `📊 <b>${S.tournaments.length}</b> torneo${S.tournaments.length === 1 ? '' : 's'} · <b>${D.stats.players}</b> jugador${D.stats.players === 1 ? '' : 'es'} · <b>${S.adjustments.length}</b> ajuste${S.adjustments.length === 1 ? '' : 's'}`;
-  renderSavePanel(); renderCloudPanel();
+  renderSavePanel(); renderCloudPanel(); Ext.paintAjustes();
   const adj = S.adjustments.slice().sort((a, b) => b.ts - a.ts);
   $('#adjList').innerHTML = adj.length
     ? `<div class="ev-list">${adj.map(a => `<div class="ev adj"><div><div class="n">${esc(a.user)}${a.reason ? ' · ' + esc(a.reason) : ''}</div><div class="s">${esc(fmtDateTime(a.ts))}</div></div>
@@ -5215,6 +5435,7 @@ ACTIONS['demo-clear'] = async () => {
   });
 
   /* página pública: los datos vienen de la nube, nada se edita ni se guarda aquí */
+  Ext.init();
   if (VIEWER) {
     document.documentElement.classList.remove('pre-gate');
     const h = location.hash.replace('#', '');
