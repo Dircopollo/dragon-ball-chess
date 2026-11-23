@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <script>document.documentElement.classList.add('pre-gate');setTimeout(function(){document.documentElement.classList.remove('pre-gate')},6000)</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>try{if(localStorage.getItem('dbc_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 <meta name="theme-color" content="#07070f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -625,11 +626,38 @@ html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!import
 
 .banner.ann{background:linear-gradient(90deg,rgba(245,197,24,.14),rgba(255,107,0,.10));border-color:rgba(245,197,24,.45)}
 #annPanel .field{margin-top:10px}
+/* ── modo claro ── */
+html[data-theme=light]{
+  color-scheme:light;
+  --bg:#f3f4fa; --bg2:#ffffff; --bg3:#eceef7; --bg4:#dfe3f1;
+  --glass:rgba(255,255,255,.86);
+  --line:rgba(20,24,60,.11); --line2:rgba(20,24,60,.22);
+  --text:#161a2e; --muted:#454b6a; --dim:#6b7190;
+  --gold:#a87600; --gold2:#8a6000; --orange:#cf5200; --red:#c62835;
+  --blue:#0069b4; --green:#1b8f35; --purple:#7d34c4;
+  --shadow:0 10px 30px rgba(30,40,90,.16);
+}
+html[data-theme=light] #stars{display:none}
+html[data-theme=light] body::before{opacity:.55}
+html[data-theme=light] .input,html[data-theme=light] .tab:hover,html[data-theme=light] .seg button:hover:not(.on),html[data-theme=light] .m-x:hover,html[data-theme=light] .dlg-text b,html[data-theme=light] .stat-who,html[data-theme=light] .ki-side b,html[data-theme=light] .fb-drop:hover,html[data-theme=light] .fb-drop.over{color:var(--text)}
+html[data-theme=light] select.input option{background:#fff;color:#161a2e}
+html[data-theme=light] .sync-pill,html[data-theme=light] .save-btn,html[data-theme=light] .tab:hover,html[data-theme=light] .m-x:hover{background:rgba(20,24,60,.05)}
+html[data-theme=light] .save-btn:hover{background:rgba(20,24,60,.1)}
+html[data-theme=light] .chart-box{background:#12122a;border-color:#12122a}
+html[data-theme=light] .chart-box .chart-tip{color:#eceef6}
+html[data-theme=light] .tabs{background:linear-gradient(180deg,rgba(243,244,250,.95) 60%,rgba(243,244,250,0))}
+html[data-theme=light] .rank-badge,html[data-theme=light] .c-pts b,html[data-theme=light] .rung h3,html[data-theme=light] .rung .cnt,html[data-theme=light] .rung .rn,html[data-theme=light] .tcard b,html[data-theme=light] .tcard .tn,html[data-theme=light] .champ-p b,html[data-theme=light] details.tier>summary .tt b,html[data-theme=light] details.tier>summary .chev,html[data-theme=light] .evo .arrow span.to,html[data-theme=light] [style*="color:var(--rc)"]{color:color-mix(in srgb,var(--rc) 50%,#000)}
+html[data-theme=light] .rung .rn,html[data-theme=light] .tcard .tn{background:rgba(20,24,60,.06)}
+html[data-theme=light] .ki-main b{color:#0a6a99;text-shadow:none}
+html[data-theme=light] .stat b[style*=color]{filter:brightness(.6) saturate(1.3)}
+#themeBtn{font-size:1.02rem}
+/* ── mensajes listos para copiar ── */
+.msg-text,textarea.input.msg-text{width:100%;height:320px;min-height:240px;resize:vertical;font:500 .92rem/1.5 var(--f-ui);white-space:pre-wrap}
 /* página pública: solo lectura */
 .cloud-pill{cursor:pointer;border:1px solid var(--line);background:var(--glass);color:var(--dim);font:inherit;font-size:.72rem;padding:5px 10px;border-radius:999px}
 .viewer #lockBtn,.viewer #saveBtn,.viewer #cloudBtn,.viewer .top-actions [data-act="goto-import"],.viewer .tab[data-tab="diplomas"],.viewer .tab[data-tab="ajustes"],.viewer .tab[data-tab="buzon"],
 .viewer #importPanel,.viewer #syncAllBtn,.viewer #legacyBanner2,.viewer .count-toggle,.viewer [data-act="t-refresh"],.viewer [data-act="t-delete"],.viewer [data-act="t-studio"],
-.viewer [data-act="open-diploma"],.viewer [data-act="goto-import"],.viewer [data-act="demo-load"],.viewer [data-act="demo-clear"],.viewer [data-act="export-json"],.viewer [data-act="adj-add"],.viewer [data-act="adj-del"],.viewer .ex-zone{display:none!important}
+.viewer [data-act="open-diploma"],.viewer [data-act="goto-import"],.viewer [data-act="demo-load"],.viewer [data-act="demo-clear"],.viewer [data-act="export-json"],.viewer [data-act="t-congrats"],.viewer [data-act="copy-follow"],.viewer [data-act="adj-add"],.viewer [data-act="adj-del"],.viewer .ex-zone{display:none!important}
 .viewer .tabs{grid-template-columns:repeat(3,1fr)}
 .viewer .brand-mark{cursor:default}
 
@@ -651,6 +679,7 @@ html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!import
       <span class="sync-pill" id="syncPill" hidden></span>
       <button class="sync-pill cloud-pill" id="cloudPill" data-act="cloud-refresh" type="button" hidden title="Se actualiza sola cada minuto">☁️</button>
       <button class="save-btn" id="cloudBtn" data-act="cloud-publish" type="button" hidden title="Publicar en la página pública">☁️</button>
+      <button class="save-btn" id="themeBtn" data-act="theme-toggle" type="button" title="Cambiar a modo claro" aria-label="Cambiar a modo claro">☀️</button>
       <button class="save-btn" id="lockBtn" data-act="lock-toggle" type="button" hidden>🔒</button>
       <button class="save-btn ok" id="saveBtn" data-act="goto-save" type="button" aria-label="Estado del guardado" title="Guardado en este dispositivo">💾<i class="sd"></i></button>
       <button class="btn primary sm" data-act="goto-import">＋ Importar<span class="hide-sm"> torneo</span></button>
@@ -704,6 +733,7 @@ html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!import
             <button class="btn ghost sm" id="sortDir" data-act="sort-dir" title="Invertir orden" aria-label="Invertir orden">↓</button>
             <button class="btn gold sm" data-act="top-image" title="Imagen Top 10 para compartir">🖼️ Top 10</button>
             <button class="btn ghost sm" data-act="copy-summary" title="Copiar el Top 10 como texto para Discord o WhatsApp">📋 Resumen</button>
+            <button class="btn ghost sm" data-act="copy-follow" title="Mensaje de seguimiento del Top 10 (subidas y bajadas)">📈 Seguimiento</button>
           </div>
         </div>
         <div id="lbBox"></div>
@@ -3905,6 +3935,7 @@ function renderTournamentDetail(t) {
         ${t.demo ? '' : `<a class="btn ghost sm" href="https://lichess.org/${t.type === 'arena' ? 'tournament' : 'swiss'}/${esc(t.id)}" target="_blank" rel="noopener">Ver en Lichess ↗</a>`}
         <button class="btn gold sm" data-act="t-studio" data-id="${esc(t.id)}">🎖️ Abrir en el estudio de diplomas</button>
         <button class="btn green sm" data-act="t-csv" data-id="${esc(t.id)}">📤 CSV</button>
+        <button class="btn gold sm" data-act="t-congrats" data-id="${esc(t.id)}">🎉 Mensaje de felicitación</button>
         <button class="btn danger sm" data-act="t-delete" data-id="${esc(t.id)}">🗑️ Eliminar</button>
       </div>
     </div>
@@ -4830,6 +4861,102 @@ ACTIONS['sec-add'] = async () => {
   setTimeout(() => code.focus(), 60);
 };
 
+/* ═══════════════════════════════════════════════════════════
+   EXTRAS 2 · tema claro/oscuro y mensajes listos para copiar
+═══════════════════════════════════════════════════════════ */
+const Theme = {
+  get() { try { return localStorage.getItem('dbc_theme') === 'light' ? 'light' : 'dark'; } catch (e) { return 'dark'; } },
+  apply(t) {
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme');
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t === 'light' ? '#f3f4fa' : '#07070f');
+    const b = $('#themeBtn');
+    if (b) { const tt = t === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'; b.textContent = t === 'light' ? '🌙' : '☀️'; b.title = tt; b.setAttribute('aria-label', tt); }
+  },
+  set(t) {
+    try { if (t === 'light') localStorage.setItem('dbc_theme', 'light'); else localStorage.removeItem('dbc_theme'); } catch (e) { }
+    this.apply(t);
+    try { refreshPlayerModal(); } catch (e) { }
+  }
+};
+ACTIONS['theme-toggle'] = () => Theme.set(Theme.get() === 'light' ? 'dark' : 'light');
+
+const Msg = {
+  url() { return CLOUD_CFG.publicUrl || ''; },
+  mv(p) {
+    if (p.isNew) return '🆕';
+    if (p.prevPos == null) return '';
+    const d = p.prevPos - p.pos;
+    return d > 0 ? `▲${d}` : d < 0 ? `▼${-d}` : '＝';
+  },
+  /* felicitación a los protagonistas de un torneo */
+  congrats(t) {
+    const D = derived(), res = sortedResults(t), medals = ['🥇', '🥈', '🥉'];
+    const top = res.filter(e => e.rank >= 1 && e.rank <= 3).slice(0, 3);
+    const counts = t.counts !== false;
+    const lines = top.map((e, i) => {
+      const pl = D.map.get(canonKey(e.name)), ks = pl ? pl.kiSeries.find(x => x.tid === t.id) : null;
+      const ki = e.rating != null ? ` · ⚡ Ki ${fmtKi(e.rating)}${ks && ks.delta ? (ks.delta > 0 ? ' ▲' : ' ▼') + Math.abs(Math.round(ks.delta)) : ''}` : '';
+      const lp = counts ? ` · ${fmtSigned(entryPoints(t, e))} pts de liga` : '';
+      return `${medals[i]} ${e.name}${ki}${lp}`;
+    });
+    const ups = D.promotions.filter(x => x.tid === t.id).slice(0, 6);
+    const n = t.nbPlayers || res.length;
+    const sameSeason = seasonOf(tournamentTs(t)) === D.season.n;
+    const lead = counts && sameSeason && D.list.length > 1 ? D.list[0] : null;
+    const parts = [`🎉 ¡Felicidades a los campeones de ${t.name}! 🐉`, '', lines.join('\n')];
+    if (ups.length) parts.push('', '🔼 Suben de rango:', ups.map(u => `• ${u.name}: ${u.from.emoji} → ${u.to.emoji} ${u.to.name}`).join('\n'));
+    if (lead) parts.push('', `👑 Líder de la ${D.season.name}: ${lead.name} (${fmtPts(lead.s.pts)} pts)`);
+    parts.push('', `👏 Gracias a ${n === 1 ? 'la persona' : 'los ' + n + ' guerreros'} que participaron. ¡Nos vemos en el próximo combate! 🔥`);
+    if (this.url()) parts.push('', '🔗 ' + this.url());
+    return parts.join('\n');
+  },
+  /* seguimiento del Top 10 después del último torneo */
+  follow() {
+    const D = derived(), medals = ['🥇', '🥈', '🥉'], list = D.list;
+    const last = D.TS && D.TS.length ? D.TS[D.TS.length - 1] : null;
+    const rows = list.slice(0, 10).map((p, i) => {
+      const m = this.mv(p);
+      return `${medals[i] || (i + 1) + '.'} ${p.name}${m ? ' ' + m : ''} · ${fmtPts(p.s.pts)} pts · ${p.rank.emoji} ${p.rank.name}`;
+    });
+    const out = [`📊 Seguimiento del Top 10 · ${S.settings.org || 'Dragon Ball Chess'} · ${D.season.name}`];
+    if (last) out.push(`Tras «${last.name}»`);
+    out.push('', rows.join('\n'));
+    const extra = [];
+    const up = list.filter(p => !p.isNew && p.prevPos != null).sort((a, b) => (b.prevPos - b.pos) - (a.prevPos - a.pos))[0];
+    if (up && up.prevPos - up.pos > 0) extra.push(`🚀 Mayor subida: ${up.name} (▲${up.prevPos - up.pos} ${up.prevPos - up.pos === 1 ? 'puesto' : 'puestos'})`);
+    if (last) {
+      let best = null;
+      list.forEach(p => { const k = p.kiSeries.find(x => x.tid === last.id); if (k && k.delta > 0 && (!best || k.delta > best.d)) best = { n: p.name, d: k.delta }; });
+      if (best) extra.push(`⚡ Mayor subida de Ki: ${best.n} (▲${Math.round(best.d)})`);
+    }
+    if (list.length >= 4) { const gap = round2(list[2].s.pts - list[3].s.pts); extra.push(`🎯 Lucha por el podio: el 3.º y el 4.º están a ${fmtPts(gap)} ${gap === 1 ? 'pt' : 'pts'}.`); }
+    if (D.season.isCurrent && D.season.daysLeft) extra.push(`⏳ Quedan ${D.season.daysLeft} ${D.season.daysLeft === 1 ? 'día' : 'días'} de temporada.`);
+    if (extra.length) out.push('', extra.join('\n'));
+    if (this.url()) out.push('', '🔗 ' + this.url());
+    return out.join('\n');
+  },
+  show(title, text) {
+    Modal.open(`<div class="m-head"><h3>${esc(title)}</h3><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
+      <p class="hint" style="margin:0 0 10px">Puedes editarlo antes de copiarlo.</p>
+      <textarea class="input msg-text" id="msgText" spellcheck="false">${esc(text)}</textarea>
+      <div class="m-actions" style="justify-content:flex-start"><button class="btn gold" data-act="msg-copy">📋 Copiar mensaje</button></div>`);
+  }
+};
+ACTIONS['msg-copy'] = async () => {
+  const ta = $('#msgText'); if (!ta) return;
+  if (await copyText(ta.value)) toast('Mensaje copiado. Pégalo en Discord o WhatsApp.', 'ok', 3500);
+  else { ta.focus(); ta.select(); toast('Selecciónalo y cópialo a mano (Ctrl+C).', 'warn', 4500); }
+};
+ACTIONS['t-congrats'] = el => {
+  const t = S.tournaments.find(x => x.id === el.dataset.id); if (!t) return;
+  if (!sortedResults(t).length) { toast('Este torneo todavía no tiene resultados.', 'warn', 3500); return; }
+  Msg.show('🎉 Mensaje de felicitación', Msg.congrats(t));
+};
+ACTIONS['copy-follow'] = () => {
+  if (!derived().list.length) { toast('Todavía no hay jugadores en la clasificación.', 'warn', 3500); return; }
+  Msg.show('📈 Seguimiento del Top 10', Msg.follow());
+};
+
 /* ── 73-ui-studio.js ── */
 /* ═══════════════════════════════════════════════════════════
    UI · pestaña DIPLOMAS (estudio: vista previa, diseño y lotes)
@@ -5435,6 +5562,7 @@ ACTIONS['demo-clear'] = async () => {
   });
 
   /* página pública: los datos vienen de la nube, nada se edita ni se guarda aquí */
+  Theme.apply(Theme.get());
   Ext.init();
   if (VIEWER) {
     document.documentElement.classList.remove('pre-gate');
