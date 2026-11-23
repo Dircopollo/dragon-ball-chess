@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<script>document.documentElement.classList.add('pre-gate');setTimeout(function(){document.documentElement.classList.remove('pre-gate')},6000)</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#07070f">
 <title>Dragon Ball Chess · Liga, Rangos y Diplomas</title>
@@ -606,6 +607,19 @@ textarea.input{resize:vertical;min-height:110px;line-height:1.4}
 .fb-note{width:100%;margin-top:10px;min-height:56px}
 .fb-big{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:10px}
 .fb-lightbox{max-width:900px}
+
+/* ── acceso con 2 pasos ── */
+html.pre-gate body>*:not(#gate),body.gated>*:not(#gate){visibility:hidden!important}
+#gate{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;background:radial-gradient(1200px 600px at 50% -10%,#1d1d38 0,#07070f 70%)}
+.gate-card{width:min(400px,100%);background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r);box-shadow:var(--shadow);padding:24px 22px;display:flex;flex-direction:column;gap:10px;text-align:center}
+.gate-ico{font-size:34px;line-height:1}
+.gate-title{font-family:var(--f-title);font-size:20px;color:var(--gold2);margin-bottom:2px}
+.gate-card .input{width:100%;text-align:left}
+.gate-card .input.gate-code{letter-spacing:.4em;text-align:center;font-size:22px;font-family:var(--f-num)}
+.gate-msg{min-height:1.3em;margin:0;color:var(--red)}
+.gate-qr{background:#fff;border-radius:10px;padding:8px;width:208px;height:208px;margin:0 auto}
+.gate-key{font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all;user-select:all;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.gate-link{background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;font:inherit;padding:2px}
 
 /* página pública: solo lectura */
 .cloud-pill{cursor:pointer;border:1px solid var(--line);background:var(--glass);color:var(--dim);font:inherit;font-size:.72rem;padding:5px 10px;border-radius:999px}
@@ -1857,7 +1871,7 @@ const Lock = {
   open: false, fails: 0, until: 0,
   isSet() { return true; },
   signed() { try { return Cloud.signedIn(); } catch (e) { return false; } },
-  locked() { return !(this.open || this.signed()); },
+  locked() { return !this.signed(); },
   supported() { return true; },
   lock() { try { Cloud.signOut(); } catch (e) { /* nada */ } this.open = false; this.paint(); },
   paint() {
@@ -1865,37 +1879,9 @@ const Lock = {
     const b = $('#lockBtn');
     if (b) { b.hidden = !this.isSet(); b.textContent = this.locked() ? '🔒' : '🔓'; b.title = this.locked() ? 'Solo lectura: toca para editar' : 'Edición activa: toca para bloquear'; }
     if (typeof renderLockPanel === 'function') renderLockPanel();
+    if (!VIEWER) { if (this.locked()) Gate.show(); else Gate.hide(); }
   },
-  ask(title = 'Desbloquear edición') {
-    return new Promise(res => {
-      const ov = Modal.open(`
-        <div class="m-head"><div class="m-title">🔒 ${title}</div><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
-        <p class="hint" style="margin-top:0">La liga está en modo solo lectura. Entra con la cuenta de la liga (la misma que usas para ☁️ Publicar).</p>
-        <input class="input" id="lkEmail" type="email" autocomplete="username" placeholder="Correo" style="width:100%;margin-bottom:8px" value="${esc(localStorage.getItem('dbc_cloud_email') || '')}">
-        <input class="input" id="lkPw" type="password" autocomplete="current-password" placeholder="Contraseña" style="width:100%">
-        <p class="hint" id="lkMsg" style="color:var(--red,#ff6b6b);min-height:1.2em"></p>
-        <div class="m-actions"><button class="btn ghost" data-act="modal-close">Cancelar</button><button class="btn primary" id="lkGo">Desbloquear</button></div>`, { cls: 'small', center: true });
-      const em = $('#lkEmail', ov), pw = $('#lkPw', ov), msg = $('#lkMsg', ov);
-      let done = false; const fin = v => { if (!done) { done = true; res(v); } };
-      const go = async () => {
-        if (Date.now() < this.until) { msg.textContent = `Demasiados intentos. Espera ${Math.ceil((this.until - Date.now()) / 1000)} s.`; return; }
-        if (!Cloud.ready) { msg.textContent = 'Falta configurar la dirección de Supabase en el archivo.'; return; }
-        msg.style.color = ''; msg.textContent = 'Comprobando…';
-        try {
-          await Cloud.signIn(em.value.trim(), pw.value);
-          try { localStorage.setItem('dbc_cloud_email', em.value.trim()); } catch (e) { /* nada */ }
-          this.fails = 0; Modal.close(ov); fin(true);
-        } catch (e) {
-          if (++this.fails >= 3) this.until = Date.now() + Math.min(60000, 5000 * this.fails);
-          msg.style.color = 'var(--red,#ff6b6b)'; msg.textContent = e.message; pw.select();
-        }
-      };
-      $('#lkGo', ov).onclick = go;
-      pw.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-      new MutationObserver(() => { if (!document.body.contains(ov)) fin(false); }).observe(document.body, { childList: true, subtree: true });
-      setTimeout(() => (em.value ? pw : em).focus(), 60);
-    });
-  }
+  ask() { return Gate.require(); }
 };
 
 /* acciones que modifican datos: con la liga bloqueada piden la contraseña */
@@ -1921,9 +1907,160 @@ ACTIONS['lock-toggle'] = async () => { if (Lock.locked()) { if (await Lock.ask()
 function renderLockPanel() {
   const box = $('#lockBox'); if (!box) return;
   let em = ''; try { em = Cloud.email || localStorage.getItem('dbc_cloud_email') || ''; } catch (e) { /* nada */ }
-  box.innerHTML = `<p class="hint" style="margin:0 0 10px">${Lock.locked() ? '🔒 Solo lectura.' : '🔓 Edición activa.'} Se desbloquea con la cuenta de la liga${em ? ' (<b>' + esc(em) + '</b>)' : ''}, la misma que usas para ☁️ Publicar: un solo correo y una sola contraseña. Si quieres cambiarla, se hace en el panel de Supabase.</p>
+  box.innerHTML = `<p class="hint" style="margin:0 0 10px">${Lock.locked() ? '🔒 Bloqueado.' : '🔓 Sesión abierta.'} Se entra con correo, contraseña y código de verificación en dos pasos${em ? ' (<b>' + esc(em) + '</b>)' : ''}. La sesión sigue abierta al actualizar la página y termina al pulsar el candado o «Bloquear ahora». Tras varios fallos se obliga a esperar.</p>
     <div class="row wrap btn-grid"><button class="btn blue" data-act="lock-toggle">${Lock.locked() ? 'Desbloquear' : 'Bloquear ahora'}</button></div>`;
 }
+
+/* ── 21-gate.js ── */
+/* ═══════════════════════════════════════════════════════════
+   ACCESO DEL ADMIN · correo + contraseña + código de 2 pasos (TOTP)
+   · Al abrir la página (y al pulsar el candado) se tapa todo hasta entrar.
+   · La sesión sobrevive a «actualizar» (sessionStorage + refresh token) y solo termina con el candado.
+   · Tras varios fallos hay espera creciente que NO se reinicia al recargar.
+   · Solo se acepta una sesión con nivel aal2 (segundo factor verificado).
+═══════════════════════════════════════════════════════════ */
+const Gate = {
+  el: null, view: '', booting: false, busy: false, resolvers: [], tmp: null, fid: null, factors: [], enr: null, cf: 0, tm: null, _m: { n: 0, until: 0 },
+  KEY: 'dbc_gate_fails',
+  st() { let v = null; try { v = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) { /* nada */ } return v && typeof v.n === 'number' ? v : this._m; },
+  save(v) { this._m = v; try { localStorage.setItem(this.KEY, JSON.stringify(v)); } catch (e) { /* nada */ } },
+  wait() { return Math.max(0, (this.st().until || 0) - Date.now()); },
+  fail() { const v = Object.assign({}, this.st()); v.n = (v.n || 0) + 1; if (v.n >= 3) v.until = Date.now() + Math.min(1800000, 30000 * Math.pow(2, v.n - 3)); this.save(v); },
+  clear() { this.save({ n: 0, until: 0 }); },
+  fmt(ms) { const s = Math.ceil(ms / 1000); return s >= 60 ? Math.floor(s / 60) + ' min ' + (s % 60) + ' s' : s + ' s'; },
+  jwt(t) { try { const p = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(atob(p + '='.repeat((4 - p.length % 4) % 4))); } catch (e) { return {}; } },
+  mk(j, email) { const c = this.jwt(j.access_token); return { access_token: j.access_token, refresh_token: j.refresh_token || null, exp: c.exp || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: c.email || (j.user && j.user.email) || email, aal: c.aal || 'aal1' }; },
+
+  boot() {
+    const root = document.documentElement;
+    if (VIEWER) { root.classList.remove('pre-gate'); return; }
+    if (Cloud.token()) { root.classList.remove('pre-gate'); Cloud.keepAlive(); return; }
+    const r = Cloud.raw();
+    if (r && r.refresh_token && r.aal === 'aal2') {
+      this.booting = true; this.view = 'boot'; this.show();
+      Cloud.refresh().then(ok => { this.booting = false; if (ok && Cloud.token()) this.done(); else { this.view = 'login'; this.render(); } });
+    }
+  },
+  require() { if (!Lock.locked()) return Promise.resolve(true); return new Promise(res => { this.resolvers.push(res); this.show(); }); },
+  show() {
+    document.body.classList.add('gated');
+    if (this.el && this.view) return;
+    if (!this.view) this.view = this.booting ? 'boot' : 'login';
+    this.render();
+    document.documentElement.classList.remove('pre-gate');
+  },
+  hide() {
+    document.body.classList.remove('gated'); document.documentElement.classList.remove('pre-gate');
+    clearInterval(this.tm); if (this.el) { this.el.remove(); this.el = null; }
+    this.view = ''; this.tmp = null; this.enr = null; this.cf = 0;
+    this.resolvers.splice(0).forEach(r => r(true));
+  },
+  done() {
+    Cloud.keepAlive(); Lock.paint(); Cloud.paint();
+    try { renderAll(); } catch (e) { /* nada */ }
+    try { if (typeof FB !== 'undefined' && FB.load) FB.load({ quiet: true }); } catch (e) { /* nada */ }
+  },
+
+  say(m, txt) { if (m) { m.textContent = txt || ''; } },
+  lockout(msg, btn) {
+    clearInterval(this.tm);
+    const upd = () => { const w = this.wait(); if (w > 0) { msg.textContent = 'Demasiados intentos. Espera ' + this.fmt(w) + '.'; if (btn) btn.disabled = true; return true; } if (btn) btn.disabled = false; return false; };
+    if (upd()) this.tm = setInterval(() => { if (!upd()) { clearInterval(this.tm); msg.textContent = ''; } }, 1000);
+  },
+  render() {
+    if (!this.el) { const d = document.createElement('div'); d.id = 'gate'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); document.body.appendChild(d); this.el = d; }
+    const v = this.view, head = '<div class="gate-ico">🔐</div><div class="gate-title">Dragon Ball Chess · Admin</div>';
+    let b = '';
+    if (v === 'boot') b = head + '<p class="hint" style="margin:0">Comprobando la sesión…</p>';
+    else if (v === 'login') b = head + `<p class="hint" style="margin:0">Entra con tu cuenta de administrador. Después te pediré el código de verificación en dos pasos.</p>
+      <input class="input" id="gtEmail" type="email" autocomplete="username" placeholder="Correo" spellcheck="false">
+      <input class="input" id="gtPw" type="password" autocomplete="current-password" placeholder="Contraseña">
+      <p class="hint gate-msg" id="gtMsg"></p><button class="btn primary" id="gtGo">Entrar</button>`;
+    else if (v === 'totp') b = head + `<p class="hint" style="margin:0">Escribe el código de 6 dígitos de tu app de verificación.</p>
+      ${this.factors.length > 1 ? '<select class="input" id="gtFac">' + this.factors.map((f, i) => `<option value="${i}">${esc(f.friendly_name || 'Dispositivo ' + (i + 1))}</option>`).join('') + '</select>' : ''}
+      <input class="input gate-code" id="gtCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+      <p class="hint gate-msg" id="gtMsg"></p><button class="btn primary" id="gtGo">Verificar</button><button class="gate-link" id="gtBack">← Volver</button>`;
+    else if (v === 'enroll') {
+      let q = (this.enr && this.enr.qr_code) || '', src = '';
+      if (/^data:image\/svg\+xml/i.test(q)) { const i = q.indexOf(','), body = q.slice(i + 1); src = 'data:image/svg+xml;charset=utf-8,' + (body.trim().startsWith('<svg') ? encodeURIComponent(body) : body); }
+      else if (q.trim().startsWith('<svg')) src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(q);
+      b = head + `<p class="hint" style="margin:0"><b>Activa la verificación en dos pasos.</b> Escanea este QR con Google Authenticator, Authy o 1Password. Escanéalo también en un segundo dispositivo o guarda la clave: <b>no hay códigos de recuperación</b>.</p>
+      ${src ? `<img class="gate-qr" alt="Código QR" src="${esc(src)}">` : ''}
+      <div class="hint" style="margin:0">Clave manual:</div><div class="gate-key">${esc((this.enr && this.enr.secret) || '')}</div>
+      <input class="input gate-code" id="gtCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+      <p class="hint gate-msg" id="gtMsg"></p><button class="btn primary" id="gtGo">Activar y entrar</button><button class="gate-link" id="gtBack">← Volver</button>`;
+    }
+    this.el.innerHTML = `<div class="gate-card">${b}</div>`;
+    const $g = s => this.el.querySelector(s);
+    const msg = $g('#gtMsg'), btn = $g('#gtGo');
+    if (msg) this.lockout(msg, btn);
+    if (v === 'login') {
+      const em = $g('#gtEmail'), pw = $g('#gtPw');
+      const go = async () => {
+        if (this.busy || this.wait() > 0) { if (msg) this.lockout(msg, btn); return; }
+        if (!Cloud.ready) { msg.textContent = 'Falta configurar la dirección de Supabase en el archivo.'; return; }
+        this.busy = true; btn.disabled = true; msg.style.color = 'var(--muted)'; msg.textContent = 'Comprobando…';
+        try { await this.step1(em.value.trim(), pw.value); }
+        catch (e) { this.fail(); pw.value = ''; msg.style.color = ''; msg.textContent = e.message; pw.focus(); this.lockout2(msg, btn); }
+        finally { this.busy = false; if (btn.isConnected && this.wait() <= 0) btn.disabled = false; }
+      };
+      btn.onclick = go; pw.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); em.addEventListener('keydown', e => { if (e.key === 'Enter') pw.focus(); });
+      setTimeout(() => em.focus(), 50);
+    } else if (v === 'totp' || v === 'enroll') {
+      const code = $g('#gtCode'), fac = $g('#gtFac');
+      const go = async () => {
+        if (this.busy || this.wait() > 0) { this.lockout(msg, btn); return; }
+        const c = code.value.replace(/\D/g, '');
+        if (c.length !== 6) { msg.textContent = 'Son 6 dígitos.'; return; }
+        this.busy = true; btn.disabled = true; msg.style.color = 'var(--muted)'; msg.textContent = 'Verificando…';
+        try { await this.step2(c, fac ? +fac.value : 0); }
+        catch (e) {
+          this.fail(); code.value = ''; msg.style.color = ''; msg.textContent = e.message; code.focus();
+          if (++this.cf >= 5) { this.tmp = null; this.view = 'login'; this.cf = 0; this.render(); return; }
+          this.lockout2(msg, btn);
+        } finally { this.busy = false; if (btn.isConnected && this.wait() <= 0) btn.disabled = false; }
+      };
+      btn.onclick = go;
+      code.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+      code.addEventListener('input', () => { code.value = code.value.replace(/\D/g, '').slice(0, 6); if (code.value.length === 6) go(); });
+      $g('#gtBack').onclick = () => { this.tmp = null; this.view = 'login'; this.render(); };
+      setTimeout(() => code.focus(), 50);
+    }
+  },
+  /* tras un fallo: si ya toca espera, mostrar la cuenta atrás en lugar del error */
+  lockout2(msg, btn) { if (this.wait() > 0) this.lockout(msg, btn); },
+
+  async step1(email, pw) {
+    const j = await Cloud.pwLogin(email, pw);
+    const tok = this.mk(j, email); this.tmp = tok; this.cf = 0;
+    let user = j.user;
+    try { const u = await Cloud.authReq('GET', '/auth/v1/user', null, tok.access_token); if (u && u.id) user = u; } catch (e) { /* nada */ }
+    const fs = (user && user.factors) || [];
+    this.factors = fs.filter(f => f.factor_type === 'totp' && f.status === 'verified');
+    if (this.factors.length) { this.fid = null; this.view = 'totp'; }
+    else {
+      for (const f of fs.filter(f => f.status === 'unverified')) { try { await Cloud.authReq('DELETE', '/auth/v1/factors/' + encodeURIComponent(f.id), null, tok.access_token); } catch (e) { /* nada */ } }
+      const en = await Cloud.authReq('POST', '/auth/v1/factors', { factor_type: 'totp', friendly_name: 'Admin ' + Date.now().toString(36), issuer: 'Dragon Ball Chess' }, tok.access_token);
+      this.fid = en.id; this.enr = en.totp || {}; this.view = 'enroll';
+    }
+    this.render();
+  },
+  async step2(code, idx) {
+    const t = this.tmp; if (!t) throw new Error('La sesión venció. Entra de nuevo.');
+    const fid = this.fid || (this.factors[idx] || this.factors[0]).id;
+    try {
+      const ch = await Cloud.authReq('POST', '/auth/v1/factors/' + encodeURIComponent(fid) + '/challenge', {}, t.access_token);
+      const s = await Cloud.authReq('POST', '/auth/v1/factors/' + encodeURIComponent(fid) + '/verify', { challenge_id: ch.id, code }, t.access_token);
+      const tok = this.mk(s, t.email);
+      if (tok.aal !== 'aal2') throw new Error('No se pudo completar la verificación.');
+      Cloud.store(tok); this.clear(); this.done(); toast('Sesión iniciada.', 'ok', 2500);
+    } catch (e) {
+      if (e.status === 429) throw new Error('Demasiados intentos. Espera unos minutos.');
+      if (e.status === 400 || e.status === 422) throw new Error('Código incorrecto. Revisa que la hora del teléfono sea automática.');
+      throw e;
+    }
+  }
+};
 
 /* ── 25-cloud.js ── */
 /* ═══════════════════════════════════════════════════════════
@@ -1946,11 +2083,40 @@ const Cloud = {
     return Object.assign({ apikey: CLOUD_CFG.key, Authorization: 'Bearer ' + (tok ? tok.access_token : CLOUD_CFG.key), 'Content-Type': 'application/json' }, extra);
   },
   token() {
-    try { const t = JSON.parse(sessionStorage.getItem(CLOUD_TOKEN) || 'null'); if (t && t.exp > Date.now() / 1000 + 30) return t; } catch (e) { /* nada */ }
-    return null;
+    const t = this.raw(); return t && t.aal === 'aal2' && t.exp > Date.now() / 1000 + 30 ? t : null;
   },
+  raw() { try { const t = JSON.parse(sessionStorage.getItem(CLOUD_TOKEN) || 'null'); return t && t.access_token ? t : null; } catch (e) { return null; } },
+  store(tok) { try { sessionStorage.setItem(CLOUD_TOKEN, JSON.stringify(tok)); } catch (e) { /* nada */ } this.email = tok.email; },
   signedIn() { const t = this.token(); if (t) this.email = t.email; return !!t; },
-  signOut() { try { sessionStorage.removeItem(CLOUD_TOKEN); } catch (e) { /* nada */ } this.email = null; this.paint(); },
+  signOut() {
+    const t = this.raw(); try { sessionStorage.removeItem(CLOUD_TOKEN); } catch (e) { /* nada */ } this.email = null;
+    if (t) { try { fetch(this.api('/auth/v1/logout?scope=local'), { method: 'POST', keepalive: true, headers: { apikey: CLOUD_CFG.key, Authorization: 'Bearer ' + t.access_token } }).catch(() => {}); } catch (e) { /* nada */ } }
+    this.paint();
+  },
+  keepAlive() {
+    if (this._ka || VIEWER) return; this._ka = true;
+    setInterval(() => this.ensure(), 30000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') this.ensure(); });
+  },
+  async ensure() {
+    const r = this.raw(); if (!r) { if (Lock.locked()) Lock.paint(); return; }
+    if (r.exp - Date.now() / 1000 < 180) { const ok = await this.refresh(); if (!ok && !this.token()) Lock.lock(); }
+  },
+  refresh() {
+    const r0 = this.raw(); if (!r0 || !r0.refresh_token) return Promise.resolve(false);
+    if (this._rf) return this._rf;
+    this._rf = (async () => {
+      try {
+        const r = await fetch(this.api('/auth/v1/token?grant_type=refresh_token'), { method: 'POST', headers: { apikey: CLOUD_CFG.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: r0.refresh_token }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.access_token) { if (r.status >= 400 && r.status < 500) { try { sessionStorage.removeItem(CLOUD_TOKEN); } catch (e) { /* nada */ } } return false; }
+        const tok = Gate.mk(j, r0.email);
+        if (tok.aal !== 'aal2') { try { sessionStorage.removeItem(CLOUD_TOKEN); } catch (e) { /* nada */ } return false; }
+        this.store(tok); return true;
+      } catch (e) { return false; } finally { this._rf = null; }
+    })();
+    return this._rf;
+  },
 
   /* ── lectura (pública) ── */
   async fetchState() {
@@ -1993,15 +2159,17 @@ const Cloud = {
   },
 
   /* ── escritura (solo el admin con sesión iniciada) ── */
-  async signIn(email, password) {
+  async pwLogin(email, password) {
     const r = await fetch(this.api('/auth/v1/token?grant_type=password'), { method: 'POST', headers: { apikey: CLOUD_CFG.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(r.status === 400 || j.error_code === 'invalid_credentials' ? 'Correo o contraseña incorrectos.' : (j.error_description || j.msg || j.message || 'No se pudo iniciar sesión.'));
-    const tok = { access_token: j.access_token, exp: Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: (j.user && j.user.email) || email };
-    try { sessionStorage.setItem(CLOUD_TOKEN, JSON.stringify(tok)); } catch (e) { /* nada */ }
-    this.email = tok.email;
-    Lock.open = true; try { Lock.paint(); } catch (e) { /* nada */ }   /* la misma cuenta desbloquea la edición */
-    return tok;
+    if (!r.ok) throw new Error(r.status === 429 || j.error_code === 'over_request_rate_limit' ? 'Demasiados intentos. Espera unos minutos.' : (r.status === 400 || j.error_code === 'invalid_credentials') ? 'Correo o contraseña incorrectos.' : (j.error_description || j.msg || j.message || 'No se pudo iniciar sesión.'));
+    return j;
+  },
+  async authReq(method, path, body, bearer) {
+    const r = await fetch(this.api(path), { method, headers: { apikey: CLOUD_CFG.key, Authorization: 'Bearer ' + bearer, 'Content-Type': 'application/json' }, body: body == null ? undefined : JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error(j.msg || j.message || j.error_description || ('Error ' + r.status)); e.status = r.status; e.code = j.error_code || j.code; throw e; }
+    return j;
   },
   async push() {
     if (!this.ready) throw new Error('Falta configurar la dirección de Supabase.');
@@ -2009,36 +2177,12 @@ const Cloud = {
     saveState();
     const body = JSON.stringify({ id: CLOUD_CFG.row, data: S, updated_at: new Date().toISOString() });
     const r = await fetch(this.api('/rest/v1/liga?on_conflict=id'), { method: 'POST', headers: this.headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }), body });
-    if (r.status === 401 || r.status === 403) { this.signOut(); throw new Error('La sesión no tiene permiso para publicar (¿el correo es el del admin?).'); }
+    if (r.status === 401 || r.status === 403) { Lock.lock(); throw new Error('La sesión venció o no tiene permiso para publicar. Entra de nuevo.'); }
     if (!r.ok) throw new Error(`Supabase respondió ${r.status}`);
     this.lastPublish = Date.now();
     try { localStorage.setItem('dbc_cloud_last', String(this.lastPublish)); } catch (e) { /* nada */ }
   },
-  askLogin() {
-    return new Promise(res => {
-      const ov = Modal.open(`
-        <div class="m-head"><div class="m-title">☁️ Publicar la liga</div><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
-        <p class="hint" style="margin-top:0">Inicia sesión con tu cuenta de admin para subir la liga a la página pública.</p>
-        <input class="input" id="clEmail" type="email" autocomplete="username" placeholder="Correo" style="width:100%;margin-bottom:8px" value="${esc(localStorage.getItem('dbc_cloud_email') || '')}">
-        <input class="input" id="clPw" type="password" autocomplete="current-password" placeholder="Contraseña" style="width:100%">
-        <p class="hint" id="clMsg" style="color:var(--red,#ff6b6b);min-height:1.2em"></p>
-        <div class="m-actions"><button class="btn ghost" data-act="modal-close">Cancelar</button><button class="btn primary" id="clGo">Entrar y publicar</button></div>`, { cls: 'small', center: true });
-      const em = $('#clEmail', ov), pw = $('#clPw', ov), msg = $('#clMsg', ov);
-      let done = false; const fin = v => { if (!done) { done = true; res(v); } };
-      const go = async () => {
-        msg.style.color = ''; msg.textContent = 'Entrando…';
-        try {
-          await this.signIn(em.value.trim(), pw.value);
-          try { localStorage.setItem('dbc_cloud_email', em.value.trim()); } catch (e) { /* nada */ }
-          Modal.close(ov); fin(true);
-        } catch (e) { msg.style.color = 'var(--red,#ff6b6b)'; msg.textContent = e.message; pw.select(); }
-      };
-      $('#clGo', ov).onclick = go;
-      pw.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-      new MutationObserver(() => { if (!document.body.contains(ov)) fin(false); }).observe(document.body, { childList: true, subtree: true });
-      setTimeout(() => (em.value ? pw : em).focus(), 60);
-    });
-  },
+  askLogin() { return Gate.require(); },
   async publish() {
     if (!this.ready) { toast('La publicación no está configurada todavía (falta la dirección de Supabase en el archivo).', 'warn', 6000); return; }
     if (this.busy) return;
@@ -5059,6 +5203,7 @@ ACTIONS['demo-clear'] = async () => {
 
   /* página pública: los datos vienen de la nube, nada se edita ni se guarda aquí */
   if (VIEWER) {
+    document.documentElement.classList.remove('pre-gate');
     const h = location.hash.replace('#', '');
     showTab(TABS.includes(h) ? h : 'liga', { push: false });
     Cloud.startViewer();
@@ -5077,6 +5222,7 @@ ACTIONS['demo-clear'] = async () => {
     toast(`Importé ${S.tournaments.length} torneo(s) de tu tracker anterior. Pulsa «Actualizar todos» para completar V/E/D y rendimiento.`, 'ki', 9000);
   }
 
+  Gate.boot();
   Lock.paint();
   FB.init();
 
