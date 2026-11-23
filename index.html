@@ -559,9 +559,57 @@ details.tier[open]>summary .chev{transform:rotate(180deg)}
 @media (max-width:760px){.season-t{font-size:.95rem}.season-s{font-size:.74rem}}
 .ladder-info .lbl-row{grid-column:1/-1;text-align:left;background:none;border:0;padding:6px 0 0;color:var(--dim);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase}
 
+/* ── buzón: sugerencias, reportes y solicitudes ── */
+.fb-fab{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;align-items:center;gap:8px;padding:11px 16px;border-radius:999px;border:1px solid rgba(245,197,24,.45);background:linear-gradient(135deg,rgba(255,107,0,.92),rgba(245,197,24,.92));color:#1b0e00;font-family:var(--f-num);font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 30px rgba(255,107,0,.35);transition:.18s}
+.fb-fab:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(255,107,0,.5)}
+.fb-fab .fb-fi{font-size:1.15rem;letter-spacing:0}
+@media (max-width:760px){.fb-fab{bottom:calc(74px + var(--safe-b));right:12px;padding:11px 13px}.fb-fab .fb-fl{display:none}}
+@media print{.fb-fab{display:none!important}}
+.tab[data-tab="buzon"]{position:relative}
+.fb-badge{position:absolute;top:2px;right:6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font:700 .62rem/18px var(--f-num);font-style:normal;text-align:center;letter-spacing:0}
+.fb-modal{max-width:560px}
+.fb-l{display:block;font-family:var(--f-num);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.fb-types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.fb-type{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:12px;border:1px solid var(--line2);background:rgba(255,255,255,.03);color:var(--muted);cursor:pointer;font:inherit;transition:.15s}
+.fb-type b{font-family:var(--f-num);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase}
+.fb-type .e{font-size:1.4rem}
+.fb-type small{font-size:.7rem;line-height:1.2;text-align:center;color:var(--dim)}
+.fb-type.on{border-color:rgba(245,197,24,.55);background:rgba(245,197,24,.1);color:var(--gold)}
+textarea.input{resize:vertical;min-height:110px;line-height:1.4}
+.fb-count{text-align:right;font-size:.72rem;color:var(--dim);margin-top:4px}
+.fb-drop{border:1.5px dashed var(--line2);border-radius:12px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;font-size:.9rem;transition:.15s}
+.fb-drop:hover,.fb-drop.over{border-color:var(--blue);color:#fff;background:rgba(0,180,252,.07)}
+.fb-thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.fb-th{position:relative;width:96px;height:96px;border-radius:10px;overflow:hidden;border:1px solid var(--line2);background:#000}
+.fb-th img{width:100%;height:100%;object-fit:cover;display:block}
+.fb-th button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:1rem;line-height:1;cursor:pointer;border:1px solid rgba(255,255,255,.25)}
+.fb-th small{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);font-size:.6rem;text-align:center;padding:2px}
+.fb-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
+.fb-err{color:#ff8b94;min-height:1.2em;font-size:.86rem;margin-top:10px}
+.fb-ok{text-align:center;padding:18px 6px}
+.fb-ok .big{font-size:3rem}
+.fb-ok h3{font-family:var(--f-title);color:var(--gold);margin:8px 0}
+.fb-chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.fb-chip{padding:6px 13px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.03);color:var(--muted);font:inherit;font-size:.84rem;cursor:pointer}
+.fb-chip.on{border-color:rgba(245,197,24,.5);background:rgba(245,197,24,.1);color:var(--gold)}
+.fb-card{border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:14px;padding:14px 16px;margin-top:12px}
+.fb-card.n{border-color:rgba(245,197,24,.45);box-shadow:0 0 22px rgba(245,197,24,.08)}
+.fb-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.fb-tag{padding:2px 10px;border-radius:999px;border:1px solid var(--line2);font-family:var(--f-num);font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
+.fb-sub{font-weight:700;font-size:1.05rem;margin:8px 0 4px}
+.fb-msg{white-space:pre-wrap;word-break:break-word;color:#dfe2f0}
+.fb-who{font-size:.82rem;color:var(--blue);margin-top:6px;word-break:break-all}
+.fb-imgs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.fb-imgs button{width:110px;height:110px;border-radius:10px;overflow:hidden;border:1px solid var(--line2);padding:0;background:#000;cursor:zoom-in}
+.fb-imgs img{width:100%;height:100%;object-fit:cover;display:block}
+.fb-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fb-note{width:100%;margin-top:10px;min-height:56px}
+.fb-big{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:10px}
+.fb-lightbox{max-width:900px}
+
 /* página pública: solo lectura */
 .cloud-pill{cursor:pointer;border:1px solid var(--line);background:var(--glass);color:var(--dim);font:inherit;font-size:.72rem;padding:5px 10px;border-radius:999px}
-.viewer #lockBtn,.viewer #saveBtn,.viewer #cloudBtn,.viewer .top-actions [data-act="goto-import"],.viewer .tab[data-tab="diplomas"],.viewer .tab[data-tab="ajustes"],
+.viewer #lockBtn,.viewer #saveBtn,.viewer #cloudBtn,.viewer .top-actions [data-act="goto-import"],.viewer .tab[data-tab="diplomas"],.viewer .tab[data-tab="ajustes"],.viewer .tab[data-tab="buzon"],
 .viewer #importPanel,.viewer #syncAllBtn,.viewer #legacyBanner2,.viewer .count-toggle,.viewer [data-act="t-refresh"],.viewer [data-act="t-delete"],.viewer [data-act="t-studio"],
 .viewer [data-act="open-diploma"],.viewer [data-act="goto-import"],.viewer [data-act="demo-load"],.viewer [data-act="demo-clear"],.viewer [data-act="export-json"],.viewer [data-act="adj-add"],.viewer [data-act="adj-del"],.viewer .ex-zone{display:none!important}
 .viewer .tabs{grid-template-columns:repeat(3,1fr)}
@@ -597,6 +645,7 @@ details.tier[open]>summary .chev{transform:rotate(180deg)}
     <button class="tab" data-tab="rangos"><span class="ti">🐉</span><span class="tl">Rangos</span></button>
     <button class="tab" data-tab="diplomas"><span class="ti">🎖️</span><span class="tl">Diplomas</span></button>
     <button class="tab" data-tab="ajustes"><span class="ti">⚙️</span><span class="tl">Ajustes</span></button>
+    <button class="tab" data-tab="buzon"><span class="ti">📬</span><span class="tl">Buzón</span><i class="fb-badge" id="fbBadge" hidden></i></button>
   </nav>
 
   <main>
@@ -891,9 +940,18 @@ details.tier[open]>summary .chev{transform:rotate(180deg)}
       </div>
       <p class="hint" style="text-align:center;margin-top:6px">Dragon Ball Chess · Liga v3 — hecho con ♟️ y ki</p>
     </section>
+
+    <!-- ═════════ BUZÓN (solo admin) ═════════ -->
+    <section class="view" id="view-buzon" hidden>
+      <div class="panel">
+        <div class="h-section">📬 Buzón de sugerencias, reportes y solicitudes</div>
+        <div id="buzonBox" style="margin-top:12px"></div>
+      </div>
+    </section>
   </main>
 </div>
 
+<button class="fb-fab" id="fbFab" data-act="fb-open" type="button" aria-label="Enviar una sugerencia, un reporte o una solicitud" title="Sugerencias, reportes y solicitudes"><span class="fb-fi">💬</span><span class="fb-fl">Sugerencias</span></button>
 <div id="toasts" aria-live="polite"></div>
 <div id="modalRoot"></div>
 <div id="printArea"></div>
@@ -3220,7 +3278,7 @@ const csvOf = rows => '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').repla
 /* ═══════════════════════════════════════════════════════════
    UI · estado, enrutado, cabecera y pestaña LIGA
 ═══════════════════════════════════════════════════════════ */
-const TABS = ['liga', 'torneos', 'rangos', 'diplomas', 'ajustes'];
+const TABS = ['liga', 'torneos', 'rangos', 'diplomas', 'ajustes', 'buzon'];
 const UI = {
   tab: 'liga', q: '', rankFilter: '', sortBy: 'pts', sortDir: 'desc', still: false, season: null,
   openT: null, openPlayer: null, pmEl: null, busy: false, cancelBatch: false,
@@ -3228,7 +3286,7 @@ const UI = {
 };
 
 function showTab(tab, { push = true } = {}) {
-  if (!TABS.includes(tab) || (VIEWER && (tab === 'diplomas' || tab === 'ajustes'))) tab = 'liga';
+  if (!TABS.includes(tab) || (VIEWER && (tab === 'diplomas' || tab === 'ajustes' || tab === 'buzon'))) tab = 'liga';
   UI.tab = tab;
   $$('.view').forEach(v => { v.hidden = v.id !== 'view-' + tab; });
   $$('.tab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
@@ -3238,7 +3296,7 @@ function showTab(tab, { push = true } = {}) {
   renderTab(tab);
 }
 function renderTab(tab) {
-  ({ liga: renderLiga, torneos: renderTorneos, rangos: renderRangos, diplomas: renderStudio, ajustes: renderAjustes }[tab] || renderLiga)();
+  ({ liga: renderLiga, torneos: renderTorneos, rangos: renderRangos, diplomas: renderStudio, ajustes: renderAjustes, buzon: renderBuzon }[tab] || renderLiga)();
 }
 function renderAll() {
   renderBrand();
@@ -4147,6 +4205,254 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.id === 'exName') { e.preventDefault(); e.target.closest('.adj-form').querySelector('[data-act="ex-add-input"]').click(); }
 });
 
+/* ── buzón: sugerencias, reportes y solicitudes ── */
+const FB_TYPES = {
+  sugerencia: { icon: '💡', name: 'Sugerencia', hint: 'Una idea para mejorar' },
+  reporte: { icon: '🐞', name: 'Reporte', hint: 'Algo falla o está mal' },
+  solicitud: { icon: '🙋', name: 'Solicitud', hint: 'Pide algo a los admins' }
+};
+const FB_STATES = { nuevo: { icon: '🆕', name: 'Nuevo' }, visto: { icon: '👁️', name: 'Visto' }, resuelto: { icon: '✅', name: 'Resuelto' } };
+const FB_IMG_RE = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
+const FB_MAX_IMG = 3, FB_IMG_CHARS = 230000;
+const FB = {
+  items: null, err: null, loading: false, state: 'todos', type: 'todos', seen: null, timer: null,
+  draft: { tipo: 'sugerencia', imgs: [] }, sending: false, ov: null,
+
+  /* ── enviar (cualquiera) ── */
+  openForm() {
+    if (!Cloud.ready) { toast('El buzón todavía no está configurado.', 'warn'); return; }
+    if (this.ov && this.ov.isConnected) return;
+    this.draft = { tipo: 'sugerencia', imgs: [] };
+    const types = Object.entries(FB_TYPES).map(([k, t]) => `<button type="button" class="fb-type ${k === 'sugerencia' ? 'on' : ''}" data-act="fb-type" data-t="${k}" role="radio" aria-checked="${k === 'sugerencia'}"><span class="e">${t.icon}</span><b>${t.name}</b><small>${t.hint}</small></button>`).join('');
+    this.ov = Modal.open(`
+      <div class="m-head"><div class="m-title">💬 Buzón de la liga</div><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
+      <div id="fbBody">
+        <p class="hint" style="margin-top:0">Cuéntanos una idea, un problema o lo que necesitas. Solo lo ve el administrador. No escribas contraseñas.</p>
+        <div class="fb-types" role="radiogroup" aria-label="Tipo de mensaje">${types}</div>
+        <label class="fb-l" for="fbSubject">Asunto</label>
+        <input class="input" id="fbSubject" maxlength="120" autocomplete="off" placeholder="Resume en una línea">
+        <label class="fb-l" for="fbMsg">Mensaje</label>
+        <textarea class="input" id="fbMsg" maxlength="2000" rows="6" placeholder="Explica con detalle. Si es un error, cuenta qué hacías y qué pasó."></textarea>
+        <div class="fb-count" id="fbCount">0 / 2000</div>
+        <label class="fb-l" for="fbContact">Contacto (opcional)</label>
+        <input class="input" id="fbContact" maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tu usuario de Lichess, para poder responderte">
+        <label class="fb-l">Imágenes (opcional, hasta ${FB_MAX_IMG})</label>
+        <div class="fb-drop" id="fbDrop" role="button" tabindex="0" data-act="fb-pick">📎 Toca para elegir, arrastra o pega (Ctrl+V) capturas de pantalla</div>
+        <input type="file" id="fbFile" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+        <div class="fb-thumbs" id="fbThumbs"></div>
+        <input class="fb-hp" id="fbHp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p class="fb-err" id="fbErr" role="alert"></p>
+        <div class="m-actions"><button class="btn ghost" data-act="modal-close">Cancelar</button><button class="btn primary" id="fbSend" data-act="fb-send">Enviar</button></div>
+      </div>`, { cls: 'fb-modal', onClose: () => { this.ov = null; } });
+    const ov = this.ov;
+    $('#fbMsg', ov).addEventListener('input', e => { $('#fbCount', ov).textContent = `${e.target.value.length} / 2000`; });
+    $('#fbFile', ov).addEventListener('change', e => { this.addFiles([...e.target.files]); e.target.value = ''; });
+    const drop = $('#fbDrop', ov);
+    ['dragenter', 'dragover'].forEach(ev => ov.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => ov.addEventListener(ev, e => { e.preventDefault(); if (ev === 'dragleave' && ov.contains(e.relatedTarget)) return; drop.classList.remove('over'); }));
+    ov.addEventListener('drop', e => { this.addFiles([...(e.dataTransfer ? e.dataTransfer.files : [])]); });
+    ov.addEventListener('paste', e => {
+      const fs = [...(e.clipboardData ? e.clipboardData.items : [])].filter(i => i.kind === 'file' && i.type.startsWith('image/')).map(i => i.getAsFile()).filter(Boolean);
+      if (fs.length) { e.preventDefault(); this.addFiles(fs); }
+    });
+    setTimeout(() => { const s = $('#fbSubject', ov); if (s) s.focus(); }, 80);
+  },
+  say(t) { const e = this.ov && $('#fbErr', this.ov); if (e) e.textContent = t || ''; },
+  async compress(file) {
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) throw new Error('Solo imágenes PNG, JPG, WEBP o GIF.');
+    if (file.size > 15 * 1024 * 1024) throw new Error('Una imagen pesa más de 15 MB.');
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('No pude leer una de las imágenes.')); i.src = url; });
+      let sc = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight)), q = .82, out = '';
+      for (let n = 0; n < 8; n++) {
+        const w = Math.max(1, Math.round(img.naturalWidth * sc)), h = Math.max(1, Math.round(img.naturalHeight * sc));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+        out = cv.toDataURL('image/jpeg', q);
+        if (out.length <= FB_IMG_CHARS) return out;
+        if (q > .5) q -= .1; else sc *= .8;
+      }
+      throw new Error('La imagen es demasiado pesada incluso comprimida.');
+    } finally { URL.revokeObjectURL(url); }
+  },
+  async addFiles(files) {
+    files = files.filter(f => f && f.type && f.type.startsWith('image/'));
+    if (!files.length) return;
+    this.say('');
+    for (const f of files) {
+      if (this.draft.imgs.length >= FB_MAX_IMG) { this.say(`Máximo ${FB_MAX_IMG} imágenes.`); break; }
+      try { this.draft.imgs.push(await this.compress(f)); this.paintThumbs(); }
+      catch (e) { this.say(e.message); }
+    }
+  },
+  paintThumbs() {
+    const box = this.ov && $('#fbThumbs', this.ov); if (!box) return;
+    box.innerHTML = this.draft.imgs.map((s, i) => `<div class="fb-th"><img src="${s}" alt="Imagen ${i + 1}"><button type="button" data-act="fb-rm" data-i="${i}" aria-label="Quitar imagen">×</button><small>${Math.round(s.length * .75 / 1024)} KB</small></div>`).join('');
+  },
+  async send() {
+    if (this.sending || !this.ov) return;
+    const v = id => (($('#' + id, this.ov) || {}).value || '');
+    const asunto = v('fbSubject').trim(), mensaje = v('fbMsg').trim(), contacto = v('fbContact').trim().replace(/^@/, '');
+    if (v('fbHp')) { this.done(); return; }   /* un bot rellenó el campo escondido: fingimos éxito */
+    if (asunto.length < 3) { this.say('Escribe un asunto (mínimo 3 letras).'); return; }
+    if (mensaje.length < 5) { this.say('Cuéntanos un poco más (mínimo 5 letras).'); return; }
+    let day = { d: '', n: 0 }, last = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    try { last = +localStorage.getItem('dbc_fb_last') || 0; day = JSON.parse(localStorage.getItem('dbc_fb_day') || 'null') || day; } catch (e) { /* nada */ }
+    if (Date.now() - last < 45000) { this.say(`Espera ${Math.ceil((45000 - (Date.now() - last)) / 1000)} s antes de enviar otro mensaje.`); return; }
+    if (day.d === today && day.n >= 5) { this.say('Llegaste al límite de 5 mensajes por hoy. Vuelve mañana.'); return; }
+    this.sending = true; this.say('');
+    const btn = $('#fbSend', this.ov); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+    try {
+      const r = await fetch(Cloud.api('/rest/v1/reportes'), {
+        method: 'POST',
+        headers: { apikey: CLOUD_CFG.key, Authorization: 'Bearer ' + CLOUD_CFG.key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ tipo: this.draft.tipo, asunto, mensaje, contacto: contacto || null, imagenes: this.draft.imgs })
+      });
+      if (!r.ok) {
+        const tx = await r.text().catch(() => '');
+        throw new Error(r.status === 404 ? 'El buzón todavía no está activado en la base de datos.' : /demasiad|limit|lleno/i.test(tx) ? 'Hay muchos mensajes ahora mismo. Intenta de nuevo en un minuto.' : `No se pudo enviar (${r.status}). Intenta más tarde.`);
+      }
+      try { localStorage.setItem('dbc_fb_last', String(Date.now())); localStorage.setItem('dbc_fb_day', JSON.stringify({ d: today, n: (day.d === today ? day.n : 0) + 1 })); } catch (e) { /* nada */ }
+      this.done();
+    } catch (e) {
+      this.say(e.message === 'Failed to fetch' ? 'Sin conexión. Revisa tu internet e intenta otra vez.' : e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
+    } finally { this.sending = false; }
+  },
+  done() {
+    const b = this.ov && $('#fbBody', this.ov); if (!b) return;
+    b.innerHTML = `<div class="fb-ok"><div class="big">✅</div><h3>¡Enviado, gracias!</h3><p class="hint">El administrador lo revisará pronto.</p><div class="m-actions" style="justify-content:center"><button class="btn primary" data-act="modal-close">Cerrar</button></div></div>`;
+  },
+
+  /* ── bandeja (solo el admin con sesión) ── */
+  norm(x) {
+    if (!x || typeof x !== 'object' || !/^[0-9a-f-]{36}$/i.test(String(x.id))) return null;
+    return {
+      id: String(x.id), created_at: x.created_at,
+      tipo: FB_TYPES[x.tipo] ? x.tipo : 'sugerencia',
+      asunto: String(x.asunto || '').slice(0, 120), mensaje: String(x.mensaje || '').slice(0, 2000),
+      contacto: x.contacto ? String(x.contacto).slice(0, 80) : '',
+      imagenes: (Array.isArray(x.imagenes) ? x.imagenes : []).filter(s => typeof s === 'string' && s.length <= 400000 && FB_IMG_RE.test(s)).slice(0, FB_MAX_IMG),
+      estado: FB_STATES[x.estado] ? x.estado : 'nuevo', nota: x.nota_admin ? String(x.nota_admin).slice(0, 500) : ''
+    };
+  },
+  unread() { return (this.items || []).filter(i => i.estado === 'nuevo').length; },
+  paintBadge() {
+    const b = $('#fbBadge'); if (!b) return;
+    const n = this.unread();
+    b.hidden = !n; b.textContent = n > 99 ? '99+' : String(n);
+  },
+  async req(method, path, body, prefer) {
+    const r = await fetch(Cloud.api('/rest/v1/' + path), { method, headers: Cloud.headers(prefer ? { Prefer: prefer } : {}), body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+    if (r.status === 401 || r.status === 403) { Lock.lock(); this.items = null; this.paintBadge(); throw new Error('La sesión venció o no tiene permiso. Inicia sesión otra vez.'); }
+    if (r.status === 404) throw new Error('El buzón todavía no está activado en la base de datos.');
+    if (!r.ok) throw new Error(`Supabase respondió ${r.status}`);
+    return r;
+  },
+  async load({ quiet = false } = {}) {
+    if (VIEWER || !Cloud.ready || !Cloud.signedIn() || this.loading) return;
+    this.loading = true; if (!quiet) { renderBuzon(); }
+    try {
+      const rows = await (await this.req('GET', 'reportes?select=*&order=created_at.desc&limit=300')).json();
+      this.items = rows.map(x => this.norm(x)).filter(Boolean);
+      this.err = null;
+      const n = this.unread();
+      if (quiet && this.seen != null && n > this.seen) toast(`📬 ${n - this.seen} mensaje${n - this.seen === 1 ? '' : 's'} nuevo${n - this.seen === 1 ? '' : 's'} en el buzón`, 'ki', 7000);
+      this.seen = n;
+    } catch (e) { this.err = e.message; if (!quiet) toast(e.message, 'err', 6000); }
+    finally { this.loading = false; this.paintBadge(); if (UI.tab === 'buzon') renderBuzon(); }
+  },
+  init() {
+    if (VIEWER) return;
+    if (Cloud.signedIn()) this.load({ quiet: true });
+    this.timer = setInterval(() => { if (document.visibilityState === 'visible' && Cloud.signedIn()) this.load({ quiet: true }); }, 90000);
+  }
+};
+
+function renderBuzon() {
+  const box = $('#buzonBox'); if (!box) return;
+  if (!Cloud.ready) { box.innerHTML = '<p class="hint" style="margin:0">Falta configurar Supabase en el archivo.</p>'; return; }
+  if (!Cloud.signedIn()) {
+    box.innerHTML = `<div style="text-align:center;padding:18px 6px"><div style="font-size:2.4rem">🔒</div>
+      <p class="hint">El buzón es privado. Inicia sesión con tu usuario y contraseña de admin para ver los mensajes.</p>
+      <button class="btn primary" data-act="fb-login">Iniciar sesión</button></div>`;
+    return;
+  }
+  if (FB.items == null) {
+    if (!FB.loading && !FB.err) FB.load();
+    box.innerHTML = FB.err ? `<p class="hint" style="color:#ff8b94;margin:0">${esc(FB.err)}</p><div class="fb-acts"><button class="btn ghost sm" data-act="fb-reload">Reintentar</button></div>` : '<p class="hint" style="margin:0">⏳ Cargando mensajes…</p>';
+    return;
+  }
+  const all = FB.items, cnt = k => all.filter(i => i.estado === k).length;
+  const chip = (kind, val, label) => `<button class="fb-chip ${FB[kind] === val ? 'on' : ''}" data-act="fb-filter" data-k="${kind}" data-v="${val}">${label}</button>`;
+  const list = all.filter(i => (FB.state === 'todos' || i.estado === FB.state) && (FB.type === 'todos' || i.tipo === FB.type));
+  box.innerHTML = `
+    <div class="row wrap" style="justify-content:space-between;gap:8px">
+      <div class="hint" style="margin:0">${all.length} mensaje${all.length === 1 ? '' : 's'} · ${cnt('nuevo')} nuevo${cnt('nuevo') === 1 ? '' : 's'}</div>
+      <div class="fb-acts" style="margin:0"><button class="btn ghost sm" data-act="fb-reload">🔄 Actualizar</button><button class="btn ghost sm" data-act="fb-open">✉️ Probar formulario</button></div>
+    </div>
+    <div class="fb-chips">${chip('state', 'todos', 'Todos')}${Object.entries(FB_STATES).map(([k, s]) => chip('state', k, `${s.icon} ${s.name} (${cnt(k)})`)).join('')}</div>
+    <div class="fb-chips">${chip('type', 'todos', 'Todos los tipos')}${Object.entries(FB_TYPES).map(([k, t]) => chip('type', k, `${t.icon} ${t.name}`)).join('')}</div>
+    ${list.length ? list.map(fbCard).join('') : '<p class="hint">No hay mensajes con este filtro.</p>'}`;
+}
+function fbCard(it) {
+  const t = FB_TYPES[it.tipo], s = FB_STATES[it.estado];
+  const st = k => `<button class="btn ${it.estado === k ? 'gold' : 'ghost'} xs" data-act="fb-state" data-id="${it.id}" data-s="${k}">${FB_STATES[k].icon} ${FB_STATES[k].name}</button>`;
+  return `<article class="fb-card ${it.estado === 'nuevo' ? 'n' : ''}" id="fb-${it.id}">
+    <div class="fb-top"><span class="fb-tag">${t.icon} ${t.name}</span><span class="fb-tag">${s.icon} ${s.name}</span><span>${esc(fmtDateTime(it.created_at))}</span></div>
+    <div class="fb-sub">${esc(it.asunto)}</div>
+    <div class="fb-msg">${esc(it.mensaje)}</div>
+    ${it.contacto ? `<div class="fb-who">👤 ${esc(it.contacto)}</div>` : ''}
+    ${it.imagenes.length ? `<div class="fb-imgs">${it.imagenes.map((src, i) => `<button type="button" data-act="fb-img" data-id="${it.id}" data-i="${i}" aria-label="Ver imagen ${i + 1}"><img src="${src}" alt="Imagen ${i + 1}" loading="lazy"></button>`).join('')}</div>` : ''}
+    <textarea class="input fb-note" id="fbn-${it.id}" maxlength="500" placeholder="Nota privada (solo tú la ves)">${esc(it.nota)}</textarea>
+    <div class="fb-acts">${st('nuevo')}${st('visto')}${st('resuelto')}
+      <button class="btn blue xs" data-act="fb-note" data-id="${it.id}">💾 Guardar nota</button>
+      <button class="btn danger xs" data-act="fb-del" data-id="${it.id}">🗑️ Eliminar</button></div>
+  </article>`;
+}
+ACTIONS['fb-open'] = () => FB.openForm();
+ACTIONS['fb-type'] = el => {
+  FB.draft.tipo = el.dataset.t;
+  $$('.fb-type', FB.ov).forEach(b => { const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+};
+ACTIONS['fb-pick'] = () => { const f = FB.ov && $('#fbFile', FB.ov); if (f) f.click(); };
+ACTIONS['fb-rm'] = el => { FB.draft.imgs.splice(+el.dataset.i, 1); FB.paintThumbs(); };
+ACTIONS['fb-send'] = () => FB.send();
+ACTIONS['fb-login'] = async () => { if (await Lock.ask('Abrir el buzón')) { FB.items = null; FB.err = null; renderBuzon(); } };
+ACTIONS['fb-reload'] = () => { FB.err = null; FB.load(); };
+ACTIONS['fb-filter'] = el => { FB[el.dataset.k] = el.dataset.v; renderBuzon(); };
+ACTIONS['fb-state'] = async el => {
+  const it = (FB.items || []).find(x => x.id === el.dataset.id); if (!it || it.estado === el.dataset.s) return;
+  try { await FB.req('PATCH', `reportes?id=eq.${it.id}`, { estado: el.dataset.s }, 'return=minimal'); it.estado = el.dataset.s; FB.paintBadge(); renderBuzon(); }
+  catch (e) { toast(e.message, 'err', 6000); }
+};
+ACTIONS['fb-note'] = async el => {
+  const it = (FB.items || []).find(x => x.id === el.dataset.id); if (!it) return;
+  const t = $('#fbn-' + it.id); if (!t) return;
+  try { await FB.req('PATCH', `reportes?id=eq.${it.id}`, { nota_admin: t.value.trim().slice(0, 500) || null }, 'return=minimal'); it.nota = t.value.trim().slice(0, 500); toast('Nota guardada.', 'ok', 2500); }
+  catch (e) { toast(e.message, 'err', 6000); }
+};
+ACTIONS['fb-del'] = async el => {
+  const it = (FB.items || []).find(x => x.id === el.dataset.id); if (!it) return;
+  if (!(await Dlg.confirm({ title: 'Eliminar mensaje', text: `¿Eliminar para siempre <b>${esc(it.asunto)}</b>? No se puede deshacer.`, ok: 'Eliminar', danger: true }))) return;
+  try { await FB.req('DELETE', `reportes?id=eq.${it.id}`, null, 'return=minimal'); FB.items = FB.items.filter(x => x.id !== it.id); FB.paintBadge(); renderBuzon(); toast('Mensaje eliminado.', 'ok', 2500); }
+  catch (e) { toast(e.message, 'err', 6000); }
+};
+ACTIONS['fb-img'] = el => {
+  const it = (FB.items || []).find(x => x.id === el.dataset.id), src = it && it.imagenes[+el.dataset.i]; if (!src) return;
+  Modal.open(`<div class="m-head"><div class="m-title">🖼️ ${esc(it.asunto)}</div><button class="m-x" data-act="modal-close" aria-label="Cerrar">×</button></div>
+    <img class="fb-big" src="${src}" alt="Imagen adjunta">
+    <div class="m-actions"><button class="btn gold" data-act="fb-img-dl" data-id="${it.id}" data-i="${+el.dataset.i}">⬇️ Descargar</button></div>`, { cls: 'fb-lightbox' });
+};
+ACTIONS['fb-img-dl'] = async el => {
+  const it = (FB.items || []).find(x => x.id === el.dataset.id), src = it && it.imagenes[+el.dataset.i]; if (!src) return;
+  try { saveBlob(await (await fetch(src)).blob(), `buzon-${slug(it.asunto)}-${+el.dataset.i + 1}.jpg`); } catch (e) { toast('No se pudo descargar la imagen.', 'err'); }
+};
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'fbSubject') { e.preventDefault(); const m = $('#fbMsg', FB.ov); if (m) m.focus(); } });
+
+
 /* ── 73-ui-studio.js ── */
 /* ═══════════════════════════════════════════════════════════
    UI · pestaña DIPLOMAS (estudio: vista previa, diseño y lotes)
@@ -4772,6 +5078,7 @@ ACTIONS['demo-clear'] = async () => {
   }
 
   Lock.paint();
+  FB.init();
 
   /* guardar al salir (por si hay cambios de ajustes pendientes del debounce) */
   const leave = () => { try { saveState(); Persist.flush(); } catch (e) { /* nada */ } };
