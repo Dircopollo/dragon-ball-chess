@@ -859,6 +859,18 @@ details.tier[open]>summary .chev{transform:rotate(180deg)}
         <p class="hint">Añade o quita puntos a un jugador desde su ficha (toca su nombre en la clasificación).</p>
       </div>
 
+      <div class="panel" id="mgPanel">
+        <div class="h-section">🔗 Cuentas unidas</div>
+        <div id="mgList" style="margin-top:12px"></div>
+        <div class="adj-form" style="grid-template-columns:1fr 1fr auto">
+          <input class="input" id="mgMain" type="text" maxlength="40" list="mgDL" placeholder="Cuenta que se queda (la actual)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Cuenta principal">
+          <input class="input" id="mgAlias" type="text" maxlength="40" list="mgDL" placeholder="Otra cuenta (la anterior)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Otra cuenta a unir">
+          <datalist id="mgDL"></datalist>
+          <button class="btn gold" data-act="merge-add-input">Unir</button>
+        </div>
+        <p class="hint">Si un jugador cambia de cuenta de Lichess, une las dos y sus puntos se suman en un solo jugador (con el nombre de la cuenta que se queda). También puedes hacerlo desde su ficha. Después pulsa ☁️ Publicar para que lo vea el grupo.</p>
+      </div>
+
       <div class="panel" id="exPanel">
         <div class="h-section">🚫 Jugadores excluidos</div>
         <div id="exList" style="margin-top:12px"></div>
@@ -1318,7 +1330,7 @@ const DEFAULT_SETTINGS = () => ({
   quality: 2400,
   format: 'png'
 });
-const freshState = () => ({ v: 2, settings: DEFAULT_SETTINGS(), tournaments: [], adjustments: [], excluded: [], lastUpdated: null, lastBackup: null, savedAt: null });
+const freshState = () => ({ v: 2, settings: DEFAULT_SETTINGS(), tournaments: [], adjustments: [], excluded: [], merges: [], lastUpdated: null, lastBackup: null, savedAt: null });
 
 let S = freshState();
 let _rev = 0;
@@ -1379,6 +1391,22 @@ function sanExcluded(a) {
 }
 const exSet = () => new Set((S.excluded || []).map(x => lc(x.name)));
 const isExcluded = name => exSet().has(lc(name));
+/* cuentas unidas: [{ alias, main, ts }] = los puntos de "alias" cuentan para "main" (cambio de cuenta de Lichess) */
+function sanMerges(a) {
+  const seen = new Set();
+  return (Array.isArray(a) ? a : []).map(x => {
+    const alias = String((x && x.alias) || '').trim().replace(/^@/, '').slice(0, 40);
+    const main = String((x && x.main) || '').trim().replace(/^@/, '').slice(0, 40);
+    return alias && main && lc(alias) !== lc(main) ? { alias, main, ts: num(x.ts, Date.now()) } : null;
+  }).filter(x => x && !seen.has(lc(x.alias)) && seen.add(lc(x.alias)));
+}
+const mergeMap = () => new Map((S.merges || []).map(m => [lc(m.alias), m.main]));
+function canonName(name, mg = mergeMap()) {
+  let cur = String(name), n = 0;
+  while (n++ < 20) { const nx = mg.get(lc(cur)); if (!nx || lc(nx) === lc(cur)) break; cur = nx; }
+  return cur;
+}
+const canonKey = (name, mg) => lc(canonName(name, mg));
 function sanitize(d) {
   const base = freshState();
   if (!d || typeof d !== 'object') return base;
@@ -1407,6 +1435,7 @@ function sanitize(d) {
     tournaments: (Array.isArray(d.tournaments) ? d.tournaments : []).map(sanTournament).filter(Boolean),
     adjustments: (Array.isArray(d.adjustments) ? d.adjustments : []).map(sanAdj).filter(Boolean),
     excluded: sanExcluded(d.excluded),
+    merges: sanMerges(d.merges),
     lastUpdated: numOrNull(d.lastUpdated), lastBackup: numOrNull(d.lastBackup), savedAt: numOrNull(d.savedAt)
   };
 }
@@ -1522,6 +1551,8 @@ function mergeState(cur, inc) {
   inc.adjustments.forEach(a => { if (!ids.has(a.id)) out.adjustments.push(a); });
   out.excluded = out.excluded || [];
   (inc.excluded || []).forEach(x => { if (!out.excluded.some(y => lc(y.name) === lc(x.name))) out.excluded.push(x); });
+  out.merges = out.merges || [];
+  (inc.merges || []).forEach(m => { if (!out.merges.some(y => lc(y.alias) === lc(m.alias))) out.merges.push(m); });
   out.lastUpdated = Date.now();
   return out;
 }
@@ -1810,7 +1841,7 @@ const Lock = {
 };
 
 /* acciones que modifican datos: con la liga bloqueada piden la contraseña */
-const EDIT_ACTIONS = new Set(['import', 'sync-all', 't-refresh', 't-delete', 'toggle-count', 'adj-add', 'adj-del', 'ex-add', 'ex-add-input', 'ex-del', 'demo-load', 'demo-clear',
+const EDIT_ACTIONS = new Set(['import', 'sync-all', 't-refresh', 't-delete', 'toggle-count', 'adj-add', 'adj-del', 'ex-add', 'ex-add-input', 'ex-del', 'merge-add', 'merge-add-input', 'merge-del', 'demo-load', 'demo-clear',
   'reset-all', 'import-json', 'paste-backup', 'paste-go', 'file-link', 'file-unlink', 'logo-pick', 'logo-clear']);
 const EDIT_FIELDS = '#setDiff,#setBase,#setGrowth,#setArena,#setSeasonStart,#setSeasonDays,#setBP,#setPbSwissTop,#setPbSwissFirst,#setPbSwissLast,#setPbArenaTop,#setPbArenaFirst,#setPbArenaLast,#setOrg,#setTagline,#setSig1Name,#setSig1Role,#setSig2Name,#setSig2Role,#fileJson,#fileLogo,#adjPts,#adjWhy,#adjUser';
 function guard(e) {
@@ -2230,28 +2261,31 @@ const cmpPlayers = (a, b) => b.pts - a.pts || b.wins - a.wins || podiumScore(b) 
 function compute(sel = selectedSeason()) {
   const T = chronological().filter(t => t.counts !== false);
   const EX = exSet();
+  const MG = mergeMap();
+  const skipP = name => EX.has(lc(name)) || EX.has(canonKey(name, MG));
   const players = new Map();
-  const getP = name => {
+  const getP = (name, raw) => {
     const k = lc(name);
     let p = players.get(k);
     if (!p) {
-      p = { key: k, name, pts: 0, wins: 0, draws: 0, losses: 0, entries: [], events: [], podium: [0, 0, 0, 0], titles: 0, best: null, rankSum: 0, perfSum: 0, perfN: 0, adjPts: 0, gamesTourneys: 0 };
+      p = { key: k, name, pts: 0, wins: 0, draws: 0, losses: 0, entries: [], events: [], podium: [0, 0, 0, 0], titles: 0, best: null, rankSum: 0, perfSum: 0, perfN: 0, adjPts: 0, gamesTourneys: 0, aliases: [] };
       players.set(k, p);
     }
     p.name = name;
+    if (raw && lc(raw) !== lc(name) && !p.aliases.some(a => lc(a) === lc(raw))) p.aliases.push(raw);
     return p;
   };
   T.forEach(t => {
     t.results.forEach(e => {
-      if (EX.has(lc(e.name))) return;
-      const p = getP(e.name);
+      if (skipP(e.name)) return;
+      const p = getP(canonName(e.name, MG), e.name);
       const ev = { kind: 't', ts: tournamentTs(t), t, e, pts: entryPoints(t, e) };
       p.events.push(ev); p.entries.push(ev);
     });
   });
   S.adjustments.forEach(a => {
-    if (EX.has(lc(a.user))) return;
-    const p = getP(a.user);
+    if (skipP(a.user)) return;
+    const p = getP(canonName(a.user, MG), a.user);
     p.events.push({ kind: 'adj', ts: a.ts, adj: a, pts: a.pts });
     p.adjPts += a.pts;
   });
@@ -2377,7 +2411,7 @@ function compute(sel = selectedSeason()) {
     tournaments: S.tournaments.filter(t => seasonOf(tournamentTs(t)) === sel).length,
     counted: TS.length,
     totalTournaments: S.tournaments.length,
-    participations: TS.reduce((s, t) => s + t.results.filter(e => !EX.has(lc(e.name))).length, 0),
+    participations: TS.reduce((s, t) => s + t.results.filter(e => !skipP(e.name)).length, 0),
     games: Math.round(list.reduce((s, p) => s + p.s.games, 0) / 2),
     topRank: all.length ? all[0].rank : null,
     topKi: list.filter(p => p.ki != null).sort((a, b) => b.ki - a.ki || cmpSeason(a, b))[0] || null,
@@ -2394,7 +2428,7 @@ function filteredPlayers() {
   const D = derived();
   const q = lc(UI.q);
   let arr = D.list.slice();
-  if (q) arr = arr.filter(p => p.key.includes(q));
+  if (q) arr = arr.filter(p => p.key.includes(q) || p.aliases.some(a => lc(a).includes(q)));
   if (UI.rankFilter) arr = arr.filter(p => String(p.rank.id) === String(UI.rankFilter));
   /* ↓ = orden natural de cada criterio (mayor primero, A-Z); ↑ = invertido */
   const rev = UI.sortDir === 'asc';
@@ -3591,12 +3625,12 @@ function renderTournamentDetail(t) {
   const res = sortedResults(t), clk = clockLabel(t);
   const D = derived();
   const rows = res.map(e => {
-    const inLeague = D.map.has(lc(e.name)) && t.counts !== false;
+    const inLeague = D.map.has(canonKey(e.name)) && t.counts !== false;
     const wdl = e.w != null ? `<span class="w">${e.w}V</span> <span class="d">${e.d}E</span> <span class="l">${e.l}D</span>` : '<span class="muted">—</span>';
     const medal = e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : e.rank;
-    const pl = inLeague ? D.map.get(lc(e.name)) : null, ks = pl ? pl.kiSeries.find(x => x.tid === t.id) : null;
+    const pl = inLeague ? D.map.get(canonKey(e.name)) : null, ks = pl ? pl.kiSeries.find(x => x.tid === t.id) : null;
     const kiTxt = e.rating != null ? `⚡ ${fmtKi(e.rating)}${ks ? kiDeltaHtml(ks.delta) : ''}` : '—';
-    return `<div class="res-row ${inLeague ? 'clk' : ''}" ${inLeague ? `data-act="open-player" data-key="${esc(lc(e.name))}" role="button" tabindex="0"` : ''}>
+    return `<div class="res-row ${inLeague ? 'clk' : ''}" ${inLeague ? `data-act="open-player" data-key="${esc(canonKey(e.name))}" role="button" tabindex="0"` : ''}>
       <span class="num">${medal}</span>
       <span class="nm"><span class="t">${esc(e.name)}</span>${e.title ? `<span class="ttl">${esc(e.title)}</span>` : ''}${e.rating != null ? `<span class="kim">${kiTxt}</span>` : ''}</span>
       <span class="num">${fmtPts(e.points)}</span>
@@ -3806,7 +3840,7 @@ function playerHtml(p) {
     const wdl = e.w != null ? ` · ${e.w}V ${e.d}E ${e.l}D` : '';
     return `<div class="ev"><div><div class="n">${esc(t.name)}</div>
       <div class="s">${esc(fmtDate(ev.ts))} · ${medal} de ${t.nbPlayers || t.results.length}${wdl}${e.perf != null ? ' · rend. ' + e.perf : ''}${ev.ki != null ? ` · <span class="kiv">⚡ ${fmtKi(ev.ki)}</span>${kiDeltaHtml(ev.kiDelta)}` : ''}</div>${mv}
-      <div style="margin-top:6px"><button class="btn gold xs" data-act="open-diploma" data-tid="${esc(t.id)}" data-key="${esc(p.key)}">🎖️ Diploma</button></div></div>${pts}</div>`;
+      <div style="margin-top:6px"><button class="btn gold xs" data-act="open-diploma" data-tid="${esc(t.id)}" data-key="${esc(lc(e.name))}">🎖️ Diploma</button></div></div>${pts}</div>`;
   }).join('');
 
   return `
@@ -3833,6 +3867,7 @@ function playerHtml(p) {
     <div class="chart-box"><canvas id="evoCanvas" style="touch-action:pan-y" aria-label="Gráfica de puntos acumulados"></canvas><div class="chart-tip" id="evoTip"></div></div>
     ${kiChart}
     <div class="h-sub">Logros</div>${badges}
+    ${p.aliases.length ? `<p class="hint" style="margin:10px 0 0">🔗 Incluye los puntos de: <b>${p.aliases.map(esc).join(', ')}</b></p>` : ''}
     <div class="h-sub">Historial</div><div class="ev-list">${events || '<p class="hint">Sin actividad.</p>'}</div>
     <div class="h-sub">Ajuste manual de puntos</div>
     <div class="adj-form">
@@ -3843,6 +3878,16 @@ function playerHtml(p) {
     <div class="m-actions" style="justify-content:flex-start">
       <button class="btn blue sm" data-act="pm-card">🖼️ Tarjeta para compartir</button>
       <button class="btn purple sm" data-act="pm-cert">🐉 Certificado de rango</button>
+    </div>
+    <div class="ex-zone merge-zone">
+      <div class="h-sub">Unir cuentas</div>
+      <p class="hint" style="margin:0 0 8px">¿Cambió de cuenta de Lichess? Escribe su otra cuenta y sus puntos se sumarán a <b>${esc(p.name)}</b>.</p>
+      ${mergesOf(p).map(m => `<div class="ev adj" style="margin-bottom:6px"><div><div class="n">🔗 ${esc(m.alias)}</div><div class="s">Unida el ${esc(fmtDateTime(m.ts))}</div></div><div class="p"><button class="btn ghost xs" data-act="merge-del" data-alias="${esc(m.alias)}">Separar</button></div></div>`).join('')}
+      <div class="adj-form" style="grid-template-columns:1fr auto">
+        <input class="input" id="mgName" type="text" maxlength="40" list="mgDLpm" placeholder="Otra cuenta de Lichess" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Otra cuenta de Lichess a unir">
+        <datalist id="mgDLpm">${derived().all.filter(x => x.key !== p.key).map(x => `<option value="${esc(x.name)}"></option>`).join('')}</datalist>
+        <button class="btn gold" data-act="merge-add" data-main="${esc(p.name)}">Unir</button>
+      </div>
     </div>
     <div class="ex-zone">
       <div class="h-sub">Moderación</div>
@@ -4055,6 +4100,49 @@ ACTIONS['ex-del'] = el => {
   commit();
   toast(`${el.dataset.name} vuelve a la liga. Pulsa ☁️ Publicar para que lo vea el grupo.`, 'ok', 6000);
 };
+/* ── unir cuentas (cambio de cuenta de Lichess durante la liga) ── */
+const mergesOf = p => (S.merges || []).filter(m => canonKey(m.alias) === p.key);
+function rawNameFor(name) {
+  const k = lc(name);
+  for (const t of S.tournaments) for (const e of t.results) if (lc(e.name) === k) return e.name;
+  for (const a of S.adjustments) if (lc(a.user) === k) return a.user;
+  return name;
+}
+async function mergeAccounts(mainRaw, aliasRaw) {
+  const typedMain = String(mainRaw || '').trim().replace(/^@/, '').slice(0, 40);
+  let alias = String(aliasRaw || '').trim().replace(/^@/, '').slice(0, 40);
+  if (!typedMain || !alias) { toast('Escribe las dos cuentas.', 'warn'); return false; }
+  const main = canonName(rawNameFor(typedMain)), aliasCanon = canonName(rawNameFor(alias));
+  if (lc(main) === lc(aliasCanon)) { toast('Esas cuentas ya están unidas (o son la misma).', 'warn'); return false; }
+  if (isExcluded(main) || isExcluded(aliasCanon) || isExcluded(alias)) { toast('Una de las cuentas está excluida de la liga. Devuélvela desde Ajustes antes de unirla.', 'warn', 6000); return false; }
+  const D = derived(), pm = D.map.get(lc(main)), pa = D.map.get(lc(aliasCanon));
+  const ptsTxt = x => x ? ` (${fmtPts(x.pts)} pts)` : '';
+  const ok = await Dlg.confirm({ title: 'Unir cuentas', text: `¿Sumar los puntos de <b>${esc(aliasCanon)}</b>${ptsTxt(pa)} a <b>${esc(main)}</b>${ptsTxt(pm)}? En la liga saldrá un solo jugador, con el nombre <b>${esc(main)}</b>. Los torneos no se modifican y puedes separarlas cuando quieras.`, ok: 'Unir' });
+  if (!ok) return false;
+  S.merges = S.merges || [];
+  S.merges.push({ alias: rawNameFor(aliasCanon), main: rawNameFor(main), ts: Date.now() });
+  S.lastUpdated = Date.now();
+  commit();
+  toast(`${aliasCanon} unida a ${main}. Pulsa ☁️ Publicar para que lo vea el grupo.`, 'ok', 6000);
+  return true;
+}
+ACTIONS['merge-add'] = el => { const i = $('#mgName'); return mergeAccounts(el.dataset.main, i ? i.value : ''); };
+ACTIONS['merge-add-input'] = async () => {
+  const a = $('#mgMain'), b = $('#mgAlias'); if (!a || !b) return;
+  if (await mergeAccounts(a.value, b.value)) { a.value = ''; b.value = ''; }
+};
+ACTIONS['merge-del'] = el => {
+  const k = lc(el.dataset.alias);
+  if (!(S.merges || []).some(m => lc(m.alias) === k)) return;
+  S.merges = S.merges.filter(m => lc(m.alias) !== k);
+  S.lastUpdated = Date.now();
+  commit();
+  toast(`${el.dataset.alias} vuelve a ser un jugador aparte. Pulsa ☁️ Publicar para que lo vea el grupo.`, 'ok', 6000);
+};
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'mgName') { e.preventDefault(); const b = e.target.closest('.adj-form').querySelector('[data-act="merge-add"]'); if (b) b.click(); }
+  if (e.key === 'Enter' && e.target && (e.target.id === 'mgMain' || e.target.id === 'mgAlias')) { e.preventDefault(); e.target.closest('.adj-form').querySelector('[data-act="merge-add-input"]').click(); }
+});
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.id === 'exName') { e.preventDefault(); e.target.closest('.adj-form').querySelector('[data-act="ex-add-input"]').click(); }
 });
@@ -4371,6 +4459,12 @@ function renderAjustes() {
     ? `<div class="ev-list">${adj.map(a => `<div class="ev adj"><div><div class="n">${esc(a.user)}${a.reason ? ' · ' + esc(a.reason) : ''}</div><div class="s">${esc(fmtDateTime(a.ts))}</div></div>
         <div class="p">${fmtSigned(a.pts)} pts<br><button class="btn danger xs" data-act="adj-del" data-id="${esc(a.id)}" style="margin-top:4px">Quitar</button></div></div>`).join('')}</div>`
     : '<p class="hint" style="margin:0">Sin ajustes manuales.</p>';
+  const mg = (S.merges || []).slice().sort((a, b) => b.ts - a.ts);
+  $('#mgList').innerHTML = mg.length
+    ? `<div class="ev-list">${mg.map(m => `<div class="ev adj"><div><div class="n">🔗 ${esc(m.alias)} → ${esc(canonName(m.main))}</div><div class="s">Unida el ${esc(fmtDateTime(m.ts))}</div></div>
+        <div class="p"><button class="btn ghost xs" data-act="merge-del" data-alias="${esc(m.alias)}">Separar</button></div></div>`).join('')}</div>`
+    : '<p class="hint" style="margin:0">Ninguna cuenta unida.</p>';
+  $('#mgDL').innerHTML = D.all.map(x => `<option value="${esc(x.name)}"></option>`).join('');
   const ex = (S.excluded || []).slice().sort((a, b) => b.ts - a.ts);
   $('#exList').innerHTML = ex.length
     ? `<div class="ev-list">${ex.map(x => `<div class="ev adj"><div><div class="n">${esc(x.name)}</div><div class="s">Excluido el ${esc(fmtDateTime(x.ts))}</div></div>
