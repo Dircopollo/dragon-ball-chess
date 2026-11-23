@@ -1981,17 +1981,22 @@ const Gate = {
       <input class="input gate-code" id="gtCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
       <p class="hint gate-msg" id="gtMsg"></p><button class="btn primary" id="gtGo">Verificar</button><button class="gate-link" id="gtBack">← Volver</button>`;
     else if (v === 'enroll') {
-      let q = (this.enr && this.enr.qr_code) || '', src = '';
-      if (/^data:image\/svg\+xml/i.test(q)) { const i = q.indexOf(','), body = q.slice(i + 1); src = 'data:image/svg+xml;charset=utf-8,' + (body.trim().startsWith('<svg') ? encodeURIComponent(body) : body); }
-      else if (q.trim().startsWith('<svg')) src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(q);
+      this.svg = this.svgOf(this.enr && this.enr.qr_code);
       b = head + `<p class="hint" style="margin:0"><b>Activa la verificación en dos pasos.</b> Escanea este QR con Google Authenticator, Authy o 1Password. Escanéalo también en un segundo dispositivo o guarda la clave: <b>no hay códigos de recuperación</b>.</p>
-      ${src ? `<img class="gate-qr" alt="Código QR" src="${esc(src)}">` : ''}
+      ${this.svg ? '<img class="gate-qr" id="gtQr" alt="Código QR">' : '<p class="hint" style="margin:0">No llegó el QR: usa la clave manual.</p>'}
       <div class="hint" style="margin:0">Clave manual:</div><div class="gate-key">${esc((this.enr && this.enr.secret) || '')}</div>
       <input class="input gate-code" id="gtCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
       <p class="hint gate-msg" id="gtMsg"></p><button class="btn primary" id="gtGo">Activar y entrar</button><button class="gate-link" id="gtBack">← Volver</button>`;
     }
     this.el.innerHTML = `<div class="gate-card">${b}</div>`;
     const $g = s => this.el.querySelector(s);
+    if (v === 'enroll') {
+      const im = $g('#gtQr');
+      if (im) {
+        im.onerror = () => { const n = document.createElement('p'); n.className = 'hint'; n.style.margin = '0'; n.textContent = 'No se pudo dibujar el QR: usa la clave manual de abajo.'; im.replaceWith(n); };
+        im.src = URL.createObjectURL(new Blob([this.svg], { type: 'image/svg+xml' }));
+      }
+    }
     const msg = $g('#gtMsg'), btn = $g('#gtGo');
     if (msg) this.lockout(msg, btn);
     if (v === 'login') {
@@ -2026,6 +2031,14 @@ const Gate = {
       $g('#gtBack').onclick = () => { this.tmp = null; this.view = 'login'; this.render(); };
       setTimeout(() => code.focus(), 50);
     }
+  },
+  svgOf(q) {
+    q = String(q || ''); let s = q;
+    if (/^data:/i.test(q)) s = q.slice(q.indexOf(',') + 1);
+    if (/^data:[^,]*;base64,/i.test(q)) { try { s = atob(s); } catch (e) { /* nada */ } }
+    else if (/^\s*%3C/i.test(s)) { try { s = decodeURIComponent(s); } catch (e) { /* nada */ } }
+    s = s.trim();
+    return /^(<\?xml[^>]*\?>\s*)?(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(s) ? s : '';
   },
   /* tras un fallo: si ya toca espera, mostrar la cuenta atrás en lugar del error */
   lockout2(msg, btn) { if (this.wait() > 0) this.lockout(msg, btn); },
